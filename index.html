@@ -62,15 +62,19 @@ for(let i=0;i<10;i++){const fold=box(.24,2.65,.10,-8.3+i*.48,4.35,-7.69,velvet,f
 const silkTrim=mat(0xb28c63,.55,.3);
 for(let i=0;i<9;i++)sphere(.06,-8.3+i*.6,2.99,-7.73,silkTrim);
 
+const oldBedStart=scene.children.length;
 // Bed with carved canopy and hanging curtains
 box(5.2,.7,7.1,-6,.75,-4,wood);box(4.8,.4,6.6,-6,1.2,-4,linen);box(5,.4,.7,-6,1.55,-7.1,red);
 for(let x of [-8.6,-3.4])for(let z of [-7.65,-.35]){cylinder(.18,.24,6.2,x,3.1,z,wood);sphere(.28,x,6.35,z,gold)}
 box(5.5,.35,7.7,-6,6.2,-4,wood);for(let z of [-7.65,-.35])box(5.5,.8,.25,-6,5.75,z,red);for(let x of [-8.6,-3.4])box(.25,1.2,7.7,x,5.55,-4,red);
 for(let x of [-8.5,-3.5]){let c=box(.13,4.1,2.6,x,3.95,-6.2,red);c.material=mat(0x592b46,.9)}
+const oldBedMeshes=scene.children.slice(oldBedStart);
+const oldFireStart=scene.children.length;
 // fireplace
 box(5,5,.8,6,2.5,-11.1,wood);box(3.1,3.2,.25,6,1.6,-10.58,black);box(5.7,.35,1.25,6,4.9,-10.6,gold);for(let x of [4.25,7.75])cylinder(.35,.4,4.4,x,2.5,-10.5,stone);
 for(let i=0;i<8;i++){let x=5.15+(i%4)*.56;let z=-10.38+Math.floor(i/4)*.45;sphere(.22+Math.random()*.22,x,.55+Math.random()*.3,z,flame)}
 let fire=new T.PointLight(0xff8236,100,16,2);fire.position.set(6,2,-9.5);fire.castShadow=true;fire.shadow.mapSize.set(512,512);scene.add(fire);
+const oldFireMeshes=scene.children.slice(oldFireStart);
 for(let x of [-10,-1,10])for(let z of [-9,6]){cylinder(.16,.16,1.2,x,1,z,gold);sphere(.19,x,1.73,z,flame);let l=new T.PointLight(0xffb873,9,7,2);l.position.set(x,1.8,z);scene.add(l)}
 const moon=new T.DirectionalLight(0x8eabf8,2);moon.position.set(-8,13,4);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);scene.add(new T.AmbientLight(0x9091ae,.6));
 // Lightweight sculpted characters: independent articulated shoulders, face and hair.
@@ -248,6 +252,37 @@ addProp('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/
 // A period-style decorative stained-glass table lamp. Keep it optional.
 addProp('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/StainedGlassLamp/glTF-Binary/StainedGlassLamp.glb',[[-11,1.3,-3]],.95);
 
+// v16: genuine downloadable Gothic bed and castle stone fireplace.
+const furnitureStatus=document.createElement('div');
+furnitureStatus.style.cssText='position:fixed;right:12px;top:134px;color:#e8c69d;font:12px sans-serif;max-width:210px;text-align:right;pointer-events:none;z-index:5';
+furnitureStatus.textContent='Кровать и камин: загрузка…';document.body.appendChild(furnitureStatus);
+const replacementStates={bed:'загрузка',fireplace:'загрузка'};
+function showFurnitureState(){furnitureStatus.textContent='Кровать: '+replacementStates.bed+' · Камин: '+replacementStates.fireplace}
+const replacementLoader=new GLTFLoader();
+function replaceFurniture(kind,url,position,targetWidth,targetDepth,targetHeight,oldMeshes,rotation=0){
+ replacementLoader.load(url,(gltf)=>{
+  try{
+   const root=gltf.scene;
+   root.rotation.y=rotation;root.updateMatrixWorld(true);
+   const bounds=new T.Box3().setFromObject(root),dim=bounds.getSize(new T.Vector3());
+   if(!Number.isFinite(dim.y)||dim.y<.01)throw Error('Invalid 3D model');
+   // Uniform scaling avoids distorting carvings. For the fireplace, preserve its height.
+   const scale=kind==='fireplace'?targetHeight/dim.y:Math.min(targetWidth/dim.x,targetDepth/dim.z);
+   root.scale.setScalar(scale);root.updateMatrixWorld(true);
+   const fitted=new T.Box3().setFromObject(root),center=fitted.getCenter(new T.Vector3());
+   root.position.x+=position[0]-center.x;
+   root.position.y+=position[1]-fitted.min.y;
+   root.position.z+=position[2]-center.z;
+   root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+   scene.add(root);
+   oldMeshes.forEach(o=>{o.visible=false});
+   replacementStates[kind]='✓ 3D';showFurnitureState();
+  }catch(e){replacementStates[kind]='ошибка модели';showFurnitureState();console.warn(kind,e)}
+ },undefined,(e)=>{replacementStates[kind]='не загрузился';showFurnitureState();console.warn(kind,e)});
+}
+replaceFurniture('bed','https://cdn.3dassets.dev/assets/23028/v1/model.glb',[-6,0,-4],5.2,7.1,5.6,oldBedMeshes,0);
+replaceFurniture('fireplace','https://tevy.dev/models/great-hall-fireplace/v1/lod1.glb',[6,0,-10.35],5.6,1.8,5.1,oldFireMeshes,0);
+
 // External asset loading disabled until files are validated and hosted locally.
 const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
 document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -282,5 +317,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · 3D-декор 15';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · кровать и камин 16';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
