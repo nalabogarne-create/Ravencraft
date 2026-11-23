@@ -79,6 +79,7 @@ for(let x of [-10,-1,10])for(let z of [-9,6]){cylinder(.16,.16,1.2,x,1,z,gold);s
 const moon=new T.DirectionalLight(0x8eabf8,2);moon.position.set(-8,13,4);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);scene.add(new T.AmbientLight(0x9091ae,.6));
 // Lightweight sculpted characters: independent articulated shoulders, face and hair.
 
+const laterBedDecorStart=scene.children.length;
 // Better physical materials and architectural ornaments.
 const stonePattern=surfaceTexture('stone'),timberPattern=surfaceTexture('wood');
 const panelMat=mat(0x67412e,.73),silk=mat(0x54243d,.93),carved=mat(0x5b3829,.69),marble=mat(0x746b73,.46);
@@ -89,6 +90,7 @@ for(let i=0;i<12;i++){let x=-8.3+i*.42;const fold=box(.16,2.7,.13,x,4.5,-7.5,sil
 for(let i=0;i<12;i++){let x=-8.3+i*.42;box(.16,2.7,.13,x,4.5,-.5,silk,false)}
 for(let y of [.45,1.1,1.75,2.4,3.05,3.7,4.35]){box(5.1,.09,.13,-6,y,-7.87,gold,false)}
 for(let i=0;i<5;i++){const x=-7.9+i*.95;const crest=new T.Mesh(new T.TorusKnotGeometry(.16,.034,42,6,2,3),gold);crest.scale.set(.8,1.4,.5);crest.position.set(x,5.85,-7.9);scene.add(crest)}
+const laterBedDecor=scene.children.slice(laterBedDecorStart);
 // Tall paneled wainscoting
 for(let x=-12.5;x<13;x+=2.4){box(2.15,2.45,.14,x,1.25,-11.52,panelMat,false);box(1.83,1.95,.17,x,1.25,-11.41,carved,false);box(1.48,1.59,.18,x,1.25,-11.30,panelMat,false)}
 for(let z=-10.5;z<11;z+=2.4){box(.13,2.45,2.1,-13.53,1.25,z,panelMat,false);box(.16,1.94,1.77,-13.42,1.25,z,carved,false)}
@@ -276,12 +278,38 @@ function replaceFurniture(kind,url,position,targetWidth,targetDepth,targetHeight
    root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
    scene.add(root);
    oldMeshes.forEach(o=>{o.visible=false});
+   if(kind==='bed')laterBedDecor.forEach(o=>{o.visible=false});
    replacementStates[kind]='✓ 3D';showFurnitureState();
   }catch(e){replacementStates[kind]='ошибка модели';showFurnitureState();console.warn(kind,e)}
  },undefined,(e)=>{replacementStates[kind]='не загрузился';showFurnitureState();console.warn(kind,e)});
 }
 replaceFurniture('bed','https://cdn.3dassets.dev/assets/23028/v1/model.glb',[-6,0,-4],5.2,7.1,5.6,oldBedMeshes,0);
-replaceFurniture('fireplace','https://tevy.dev/models/great-hall-fireplace/v1/lod1.glb',[6,0,-10.35],5.6,1.8,5.1,oldFireMeshes,0);
+// The previous fireplace URL was not a valid available GLB. Don't claim it loaded.
+// Rebuild the fireplace locally with stonework, carved arches and a glowing recess.
+// The previous placeholder is hidden, while fire lighting stays active.
+oldFireMeshes.forEach(o=>{if(o.isMesh)o.visible=false});
+const hearthStone=mat(0x776a65,.96),hearthShadow=mat(0x100e12,.99),hearthGold=mat(0x9c7750,.62);
+hearthStone.map=surfaceTexture('stone');hearthStone.needsUpdate=true;
+box(5.9,.3,1.65,6,.15,-10.28,hearthStone,false);
+box(5.75,.45,1.25,6,4.95,-10.72,hearthStone,false);
+box(5.4,4.5,.32,6,2.4,-11.27,hearthStone,false);
+box(3.3,3.2,.12,6,1.75,-10.96,hearthShadow,false);
+for(const x of [3.7,8.3]){
+ box(.86,4.4,.95,x,2.5,-10.48,hearthStone,false);
+ box(.98,.22,1.04,x,4.56,-10.48,hearthGold,false);
+ for(let y=.75;y<4.4;y+=.66)box(.9,.035,1.02,x,y,-10.45,hearthGold,false);
+}
+box(4.3,.8,1.0,6,4.35,-10.53,hearthStone,false);
+const archShape=new T.Shape();
+archShape.moveTo(-1.6,0);archShape.lineTo(-1.6,1.15);archShape.quadraticCurveTo(0,2.5,1.6,1.15);archShape.lineTo(1.6,0);archShape.lineTo(-1.6,0);
+const archGeo=new T.ShapeGeometry(archShape);
+const archMesh=new T.Mesh(archGeo,hearthShadow);archMesh.position.set(6,.45,-10.36);scene.add(archMesh);
+for(let i=0;i<5;i++){
+ const log=cylinder(.14,.17,1.35,5.35+i*.33,.55,-10.05,wood);
+ log.rotation.z=Math.PI/2;
+}
+for(let i=0;i<5;i++){const ember=sphere(.16+(i%2)*.07,5.3+i*.33,.75,-9.85,flame);ember.scale.y=1.65}
+replacementStates.fireplace='✓ каменный, создан в игре';showFurnitureState();
 
 // External asset loading disabled until files are validated and hosted locally.
 const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
@@ -317,5 +345,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · кровать и камин 16';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · исправление 17';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
