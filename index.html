@@ -218,6 +218,36 @@ chairLoader.load(chairURL,(gltf)=>{
  }catch(e){modelNotice.textContent='3D-кресло: ошибка модели';console.warn(e)}
 },undefined,(e)=>{modelNotice.textContent='3D-кресло недоступно · старая мебель сохранена';console.warn('GLB failed',e)});
 
+
+// v15: real antique 3D props. Keep all earlier movement, hugs and collisions unchanged.
+const propStatus=document.createElement('div');
+propStatus.style.cssText='position:fixed;right:12px;top:94px;color:#e8c69d;font:11px sans-serif;max-width:190px;text-align:right;pointer-events:none;z-index:4';
+propStatus.textContent='Старинные 3D-предметы: загрузка…';document.body.appendChild(propStatus);
+const propLoader=new GLTFLoader();
+let loadedProps=0,failedProps=0;
+function addProp(url,locations,height,rotation=0){
+ propLoader.load(url,(gltf)=>{
+  try{
+   const source=gltf.scene;source.updateMatrixWorld(true);
+   const bb=new T.Box3().setFromObject(source),dim=bb.getSize(new T.Vector3()),center=bb.getCenter(new T.Vector3());
+   if(!Number.isFinite(dim.y)||dim.y<.001)throw Error('Invalid dimensions');
+   const sc=height/dim.y;
+   for(const loc of locations){
+    const root=source.clone(true);root.scale.setScalar(sc);
+    root.position.set(loc[0]-center.x*sc,loc[1]-bb.min.y*sc,loc[2]-center.z*sc);
+    root.rotation.y=rotation;
+    root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+    scene.add(root);loadedProps++;
+   }
+   propStatus.textContent='✓ Настоящих 3D-предметов: '+loadedProps+(failedProps?' · ошибок: '+failedProps:'');
+  }catch(e){failedProps++;propStatus.textContent='3D: '+loadedProps+' · ошибок: '+failedProps;console.warn(e)}
+ },undefined,(e)=>{failedProps++;propStatus.textContent='3D: '+loadedProps+' · ошибок: '+failedProps;console.warn('Prop unavailable',e)});
+}
+// Ornate old wooden lanterns beside the fireplace and near the bed.
+addProp('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Lantern/glTF-Binary/Lantern.glb',[[3.15,.2,-9.65],[8.8,.2,-9.65]],1.25,Math.PI*.15);
+// A period-style decorative stained-glass table lamp. Keep it optional.
+addProp('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/StainedGlassLamp/glTF-Binary/StainedGlassLamp.glb',[[-11,1.3,-3]],.95);
+
 // External asset loading disabled until files are validated and hosted locally.
 const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
 document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -252,5 +282,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · 3D-кресло 14';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · 3D-декор 15';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
