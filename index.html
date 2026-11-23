@@ -39,10 +39,60 @@ for(let i=0;i<8;i++){let x=5.15+(i%4)*.56;let z=-10.38+Math.floor(i/4)*.45;spher
 let fire=new T.PointLight(0xff8236,100,16,2);fire.position.set(6,2,-9.5);fire.castShadow=true;fire.shadow.mapSize.set(512,512);scene.add(fire);
 for(let x of [-10,-1,10])for(let z of [-9,6]){cylinder(.16,.16,1.2,x,1,z,gold);sphere(.19,x,1.73,z,flame);let l=new T.PointLight(0xffb873,9,7,2);l.position.set(x,1.8,z);scene.add(l)}
 const moon=new T.DirectionalLight(0x8eabf8,2);moon.position.set(-8,13,4);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);scene.add(new T.AmbientLight(0x9091ae,.6));
-function person(isLia,x,z){const g=new T.Group();scene.add(g);g.position.set(x,0,z);const cloth=isLia?red:black;const body=new T.Mesh(new T.CylinderGeometry(.32,.45,1.45,12),cloth);body.position.y=1.32;g.add(body);const head=new T.Mesh(new T.SphereGeometry(.29,16,12),skin);head.position.y=2.31;g.add(head);const scalp=new T.Mesh(new T.SphereGeometry(.302,16,12),isLia?hair:black);scalp.scale.set(1,.52,1);scalp.position.y=2.49;g.add(scalp);if(isLia){for(let k=0;k<13;k++){const a=k/13*Math.PI*2;const strand=new T.Mesh(new T.CylinderGeometry(.065,.055,1.7,6),hair);strand.position.set(Math.sin(a)*.25,1.66,Math.cos(a)*.23);g.add(strand)}}const arms=[];for(let s of [-1,1]){const arm=new T.Group();arm.position.set(s*.39,1.91,0);const limb=new T.Mesh(new T.CylinderGeometry(.105,.09,1.0,9),cloth);limb.position.y=-.47;arm.add(limb);g.add(arm);arms.push(arm);const leg=new T.Mesh(new T.CylinderGeometry(.13,.13,.7,9),black);leg.position.set(s*.18,.36,0);g.add(leg)}return {g,arms}}const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
+// Lightweight sculpted characters: independent articulated shoulders, face and hair.
+function person(isLia,x,z){
+ const g=new T.Group();scene.add(g);g.position.set(x,0,z);
+ const dress=mat(isLia?0x271321:0x17141d,.88),trim=mat(0x9c7854,.42,.5);
+ const face=mat(isLia?0xe9c6b8:0xd6b3a7,.91),locks=mat(isLia?0xe8d8b7:0x161018,.82);
+ const lips=mat(0x8e4b55,.72),eyes=mat(isLia?0x839bb2:0x454754,.22);
+ const make=(geo,m,parent,px,py,pz)=>{const o=new T.Mesh(geo,m);o.position.set(px,py,pz);o.castShadow=true;parent.add(o);return o};
+ const ball=(parent,px,py,pz,rx,ry,rz,m)=>{const o=make(new T.SphereGeometry(1,20,14),m,parent,px,py,pz);o.scale.set(rx,ry,rz);return o};
+ const chest=ball(g,0,1.62,0,isLia?.29:.37,.59,isLia?.22:.27,dress);
+ const waist=ball(g,0,1.12,0,isLia?.23:.31,.25,.2,dress);
+ if(isLia){
+  const skirt=make(new T.CylinderGeometry(.23,.76,1.27,26,6),dress,g,0,.65,0);
+  for(let k=0;k<12;k++){let a=k*Math.PI/6;const seam=make(new T.CylinderGeometry(.012,.024,1.12,5),trim,g,Math.sin(a)*.53,.6,Math.cos(a)*.53);seam.rotation.z=Math.sin(a)*.25;seam.rotation.x=Math.cos(a)*.25}
+  ball(g,0,1.74,-.23,.16,.18,.055,trim);
+ }else{
+  const coat=make(new T.CylinderGeometry(.32,.52,1.42,16),dress,g,0,.86,0);
+  ball(g,0,1.88,-.21,.16,.36,.06,mat(0x3e3039));
+  const collar=make(new T.CylinderGeometry(.28,.36,.23,16),dress,g,0,2.09,0);
+  for(let q of [-1,1]){const lapel=ball(g,q*.19,1.66,-.27,.12,.44,.06,trim);lapel.rotation.z=q*.33}
+ }
+ const neck=make(new T.CylinderGeometry(.12,.13,.26,12),face,g,0,2.11,0);
+ const head=ball(g,0,2.44,0,.255,.35,.235,face);
+ // Front is -Z, so faces are visible when looking at the avatar from the front.
+ ball(g,-.105,2.46,-.221,.055,.028,.013,eyes);ball(g,.105,2.46,-.221,.055,.028,.013,eyes);
+ ball(g,-.105,2.467,-.233,.016,.018,.01,mat(0x111017));ball(g,.105,2.467,-.233,.016,.018,.01,mat(0x111017));
+ ball(g,0,2.36,-.245,.043,.075,.052,face);ball(g,0,2.275,-.228,.085,.021,.016,lips);
+ ball(g,0,2.68,.02,.28,.16,.26,locks);
+ if(isLia){
+  for(let i=0;i<18;i++){const a=i/18*Math.PI*2;const px=Math.sin(a)*.245,pz=Math.cos(a)*.205+.055;
+   if(pz<-.09&&Math.abs(px)<.16)continue;
+   const strand=ball(g,px,1.69,pz,.045,.93,.055,locks);strand.rotation.z=-px*.15;
+  }
+  ball(g,-.2,2.62,-.05,.12,.13,.18,locks);ball(g,.2,2.62,-.05,.12,.13,.18,locks);
+ }else{
+  for(let i=0;i<16;i++){const a=i/16*Math.PI*2;const px=Math.sin(a)*.24,pz=Math.cos(a)*.2+.07;
+   const strand=ball(g,px,2.32,pz,.075,.45,.09,locks);strand.rotation.z=-px*.6;
+  }
+ }
+ const arms=[],legs=[];
+ for(let side of [-1,1]){
+  const shoulder=new T.Group();shoulder.position.set(side*(isLia?.32:.41),1.93,0);g.add(shoulder);
+  ball(shoulder,side*.015,-.38,0,.115,.43,.12,dress);
+  ball(shoulder,side*.02,-.83,-.02,.085,.12,.085,face);
+  arms.push(shoulder);
+  const hip=new T.Group();hip.position.set(side*.18,.93,0);g.add(hip);
+  ball(hip,0,-.33,0,.145,.46,.15,isLia?mat(0x1b1820):dress);
+  ball(hip,0,-.78,-.11,.17,.13,.29,mat(0x111017));legs.push(hip);
+ }
+ return {g,arms,legs};
+}
+const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
 document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 const joy=document.getElementById('joy'),nub=document.getElementById('nub');function moveJoy(e){const r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const q=Math.min(1,48/Math.max(1,Math.hypot(dx,dy)));joyX=dx*q/48;joyY=-dy*q/48;nub.style.transform='translate('+joyX*38+'px,'+-joyY*38+'px)'}joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);moveJoy(e)});joy.addEventListener('pointermove',e=>{if(joy.hasPointerCapture(e.pointerId))moveJoy(e)});function release(){joyX=joyY=0;nub.style.transform=''}joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
 let lastX=0,lastY=0,drag=false;renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY});renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-lastX)*.005;pitch=Math.max(.05,Math.min(.9,pitch+(e.clientY-lastY)*.003));lastX=e.clientX;lastY=e.clientY});renderer.domElement.addEventListener('pointerup',()=>drag=false);
 document.getElementById('hug').onclick=()=>{if(lia.g.position.distanceTo(aurel.g.position)<2.6){hugUntil=performance.now()+3500;document.getElementById('tip').textContent='Аурель обнимает Лию ♥'}else document.getElementById('tip').textContent='Подойди ближе к Аурелю ♥'};
-const clock=new T.Clock();function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05),f=joyY+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),s=joyX+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const mag=Math.max(1,Math.hypot(f,s));let dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*dt*3/mag,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*dt*3/mag;lia.g.position.x=Math.max(-12,Math.min(12,lia.g.position.x+dx));lia.g.position.z=Math.max(-10,Math.min(10,lia.g.position.z+dz));if(Math.abs(dx)+Math.abs(dz)>.002)lia.g.rotation.y=Math.atan2(dx,dz);const h=performance.now()<hugUntil;if(h){lia.g.position.lerp(aurel.g.position.clone().add(new T.Vector3(0,0,1.1)),.05);lia.g.rotation.y=Math.PI;aurel.g.rotation.y=0}for(const p of [lia,aurel]){p.arms[0].rotation.z=T.MathUtils.lerp(p.arms[0].rotation.z,h?-.8:0,.07);p.arms[1].rotation.z=T.MathUtils.lerp(p.arms[1].rotation.z,h?.8:0,.07)}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Веб-версия · текстуры';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+const clock=new T.Clock();let walkPhase=0;function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05),f=joyY+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),s=joyX+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const mag=Math.max(1,Math.hypot(f,s));let dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*dt*3/mag,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*dt*3/mag;lia.g.position.x=Math.max(-12,Math.min(12,lia.g.position.x+dx));lia.g.position.z=Math.max(-10,Math.min(10,lia.g.position.z+dz));if(Math.abs(dx)+Math.abs(dz)>.002)lia.g.rotation.y=Math.atan2(dx,dz);const h=performance.now()<hugUntil;const moving=Math.abs(dx)+Math.abs(dz)>.002;if(moving&&!h)walkPhase+=dt*10;for(const leg of lia.legs){leg.rotation.x=T.MathUtils.lerp(leg.rotation.x,moving&&!h?Math.sin(walkPhase+(leg===lia.legs[0]?0:Math.PI))*.37:0,.16)}if(h){lia.g.position.lerp(aurel.g.position.clone().add(new T.Vector3(0,0,1.1)),.05);lia.g.rotation.y=Math.PI;aurel.g.rotation.y=0}for(const p of [lia,aurel]){p.arms[0].rotation.z=T.MathUtils.lerp(p.arms[0].rotation.z,h?-.95:0,.09);p.arms[1].rotation.z=T.MathUtils.lerp(p.arms[1].rotation.z,h?.95:0,.09)}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Персонажи · обновлены';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
