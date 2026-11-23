@@ -153,7 +153,30 @@ function person(isLia,x,z){
  return {g,arms,legs};
 }
 
-// External assets were not verified; no broken network requests on mobile.
+// Real CC0 photogrammetry-based Gothic furniture from Poly Haven (1K mobile variant).
+// Poly Haven distributes glTF with adjacent PBR texture files; no imaginary .glb names.
+const furnitureLoader=new GLTFLoader();
+async function loadGothic(assetId,at,width,clearOriginal=false){
+ try{
+  const r=await fetch('https://api.polyhaven.com/files/'+assetId);
+  if(!r.ok)throw Error('Asset metadata unavailable '+r.status);
+  const json=await r.json(),group=json.gltf||json.GLTF||json.glTF;
+  if(!group)throw Error('glTF not available');
+  const variants=Object.keys(group);const k=variants.find(k=>k.toLowerCase()==='1k')||variants.find(k=>k.toLowerCase()==='2k')||variants[0];
+  const pack=group[k];let gltf=pack?.gltf?.url||pack?.gltf?.file?.url||pack?.url;
+  if(!gltf)throw Error('No glTF URL in '+assetId);
+  const loaded=await new Promise((resolve,reject)=>furnitureLoader.load(gltf,resolve,undefined,reject));
+  const root=loaded.scene;root.updateMatrixWorld(true);
+  const bounds=new T.Box3().setFromObject(root),dims=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
+  const scale=width/Math.max(dims.x,dims.z);root.scale.setScalar(scale);
+  root.position.set(at[0]-center.x*scale,at[1]-bounds.min.y*scale,at[2]-center.z*scale);
+  root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+  if(clearOriginal){for(const o of scene.children){if(!o.isMesh||o===root)continue;const p=o.position;if(p.x>-8.9&&p.x< -3.1&&p.z>-8.1&&p.z<.1&&p.y>.4&&p.y<6.4&&o.geometry?.type!=='SphereGeometry'&&o.geometry?.type!=='TorusGeometry')o.visible=false}}
+  scene.add(root);document.getElementById('status').textContent='Резная мебель · 3D';
+ }catch(e){console.warn('Furniture fallback',assetId,e)}
+}
+loadGothic('GothicBed_01',[-6,0,-4],5.1,true);
+loadGothic('GothicCabinet_01',[-11,0,-7],2.4);
 const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
 document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 const joy=document.getElementById('joy'),nub=document.getElementById('nub');function moveJoy(e){const r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const q=Math.min(1,48/Math.max(1,Math.hypot(dx,dy)));joyX=dx*q/48;joyY=-dy*q/48;nub.style.transform='translate('+joyX*38+'px,'+-joyY*38+'px)'}joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);moveJoy(e)});joy.addEventListener('pointermove',e=>{if(joy.hasPointerCapture(e.pointerId))moveJoy(e)});function release(){joyX=joyY=0;nub.style.transform=''}joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
@@ -167,5 +190,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?-.88:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.25:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · обновление 8';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.05:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.25:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · версия 9';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
