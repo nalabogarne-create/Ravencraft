@@ -29,6 +29,39 @@ for(let y=1;y<9;y+=1.1){box(28,.08,.12,0,y,-11.59,dark);box(28,.08,.12,0,y,11.59
 for(let x of [-10,0,10]){for(let z of [-8,8]){box(.85,8,.85,x,4,z,stone);box(1.15,.3,1.15,x,7.9,z,gold);box(1.2,.35,1.2,x,.7,z,gold)}}
 box(29,.5,25,0,9,0,dark);for(let x=-12;x<=12;x+=6)box(.32,.45,24,x,8.6,0,wood);
 for(let x of [-7,7]){box(3.4,5,.18,x,4,-11.14,black);box(.13,5,.2,x,4,-10.99,gold);box(3.4,.15,.2,x,4,-10.99,gold);for(let k=0;k<5;k++)box(.12,5,.2,x-1.5+k*.75,4,-10.96,gold)}
+// v13: lightweight woven textiles, wallpaper and warm candlelit ambience.
+// All textures are generated locally, without downloads or network dependencies.
+function wovenTexture(base,thread,repeatX=3,repeatY=3){
+ const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+ g.fillStyle=base;g.fillRect(0,0,256,256);
+ for(let y=0;y<256;y+=3){g.fillStyle=y%2?'rgba(255,255,255,.035)':'rgba(0,0,0,.055)';g.fillRect(0,y,256,1)}
+ for(let x=0;x<256;x+=4){g.fillStyle='rgba(255,255,255,.025)';g.fillRect(x,0,1,256)}
+ g.strokeStyle=thread;g.lineWidth=1.2;
+ for(let x=16;x<256;x+=64)for(let y=16;y<256;y+=64){
+  g.beginPath();g.ellipse(x+16,y+16,10,22,0,0,Math.PI*2);g.stroke();
+  g.beginPath();g.ellipse(x+16,y+16,22,10,0,0,Math.PI*2);g.stroke();
+  g.fillStyle='rgba(210,162,105,.14)';g.fillRect(x+13,y+13,6,6);
+ }
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(repeatX,repeatY);return t;
+}
+red.map=wovenTexture('#74304c','rgba(211,156,114,.21)',2,3);red.roughness=.98;red.needsUpdate=true;
+linen.map=wovenTexture('#c3afa5','rgba(255,245,224,.09)',2,3);linen.roughness=.99;linen.needsUpdate=true;
+const wallSilk=mat(0x4b2a37,.97);wallSilk.map=wovenTexture('#4c2b3a','rgba(173,129,89,.21)',8,3);wallSilk.needsUpdate=true;
+box(27.2,5.8,.045,0,5.6,-11.59,wallSilk,false);
+box(.045,5.8,23.0,-13.59,5.6,0,wallSilk,false);
+// Antique gilded moldings and discreet panels on the visible far wall.
+for(let y of [2.72,8.32])box(27.2,.075,.14,0,y,-11.45,gold,false);
+for(let x=-12;x<13;x+=3.8){
+ box(.065,4.7,.09,x,5.45,-11.39,gold,false);
+ box(2.9,.065,.09,x+1.45,7.8,-11.39,gold,false);
+ box(2.9,.065,.09,x+1.45,3.1,-11.39,gold,false);
+}
+// Real fabric-like canopy folds, with no extra remote assets.
+const velvet=mat(0x62253f,.99);velvet.map=wovenTexture('#662941','rgba(203,139,108,.16)',1,3);velvet.needsUpdate=true;
+for(let i=0;i<10;i++){const fold=box(.24,2.65,.10,-8.3+i*.48,4.35,-7.69,velvet,false);fold.rotation.z=Math.sin(i*.75)*.035}
+const silkTrim=mat(0xb28c63,.55,.3);
+for(let i=0;i<9;i++)sphere(.06,-8.3+i*.6,2.99,-7.73,silkTrim);
+
 // Bed with carved canopy and hanging curtains
 box(5.2,.7,7.1,-6,.75,-4,wood);box(4.8,.4,6.6,-6,1.2,-4,linen);box(5,.4,.7,-6,1.55,-7.1,red);
 for(let x of [-8.6,-3.4])for(let z of [-7.65,-.35]){cylinder(.18,.24,6.2,x,3.1,z,wood);sphere(.28,x,6.35,z,gold)}
@@ -191,5 +224,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · исправление 12';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · отделка 13';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
