@@ -1,0 +1,37 @@
+name: Import real Poly Haven 3D furniture
+on:
+  push:
+    branches: [imvu-quality-rebuild]
+    paths:
+      - '.github/workflows/import-real-furniture.yml'
+      - 'rebuild/download-polyhaven.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: imvu-quality-rebuild
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch original CC0 3D models and texture dependencies
+        id: assets
+        run: python3 rebuild/download-polyhaven.py
+      - name: Pack textures into standalone GLB models
+        run: |
+          npm install --global @gltf-transform/cli
+          mkdir -p assets/real
+          gltf-transform copy "${{ steps.assets.outputs.bed }}" assets/real/gothic-bed.glb
+          gltf-transform copy "${{ steps.assets.outputs.cabinet }}" assets/real/gothic-cabinet.glb
+          test -s assets/real/gothic-bed.glb
+          test -s assets/real/gothic-cabinet.glb
+      - name: Commit real model binaries to the development branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/real/gothic-bed.glb assets/real/gothic-cabinet.glb
+          git diff --cached --quiet || (git commit -m "Import genuine Poly Haven Gothic Bed and Cabinet GLB assets" && git push)
