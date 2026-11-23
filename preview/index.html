@@ -16,6 +16,27 @@ function wall(w,h,x,y,z,material,rot=0){const m=new THREE.Mesh(new THREE.PlaneGe
 const stone=new THREE.MeshStandardMaterial({color:0x55515a,roughness:.94,side:THREE.DoubleSide});
 const wood=new THREE.MeshStandardMaterial({color:0x382320,roughness:.7,metalness:.05});
 const velvet=new THREE.MeshStandardMaterial({color:0x491923,roughness:1,side:THREE.DoubleSide});
+// Load real photographed PBR maps. Keep solid-color fallback if GitHub Actions is still importing.
+const texLoader=new THREE.TextureLoader();
+const base='/Ravencraft/assets/pbr/';
+function pbr(mat,id,repeatX,repeatY){
+ const load=(suffix,apply)=>{
+  const path=base+id+'_'+suffix+'.jpg';
+  texLoader.load(path,t=>{
+   t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeatX,repeatY);
+   t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+   if(suffix==='color')t.colorSpace=THREE.SRGBColorSpace;
+   apply(t);mat.needsUpdate=true;
+  },undefined,()=>{});
+ };
+ load('color',t=>{mat.map=t;mat.color.set(0xffffff)});
+ load('normal',t=>{mat.normalMap=t;mat.normalScale.set(.55,.55)});
+ load('rough',t=>{mat.roughnessMap=t;mat.roughness=1});
+}
+pbr(stone,'wall',5,2);pbr(wood,'wood',2,1);
+const floorPBR=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85});
+pbr(floorPBR,'floor',4,4);
+floor.material=floorPBR;
 const moonGlass=new THREE.MeshStandardMaterial({color:0x8596b2,emissive:0x35415c,emissiveIntensity:.38,roughness:.18,metalness:.18,side:THREE.DoubleSide});
 const brass=new THREE.MeshStandardMaterial({color:0x9c7653,metalness:.7,roughness:.38});
 wall(14,6,0,3,-5,stone);wall(11,6,-7,3,.5,stone,Math.PI/2);wall(11,6,7,3,.5,stone,-Math.PI/2);
@@ -36,7 +57,7 @@ camera.position.set(6.4,3.6,8.8);orbit.target.set(-.2,1.3,-.5);orbit.update();
 
 const loader=new GLTFLoader();let success=0,fail=0;
 const objects=[{name:'Готическая кровать',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/gothic-bed.glb',x:-2,z:0,height:2.8},{name:'Готический шкаф',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/gothic-cabinet.glb',x:2.4,z:-1,height:2.4}];
-function report(){status.textContent='Готическая спальня: '+success+' из 2 моделей загружено'+(fail?' · '+fail+' не загрузились. Проверь загрузку и доступность GLB-файлов.':'')}
+function report(){status.textContent='Готическая спальня · 3D-мебель: '+success+' из 2 моделей загружено'+(fail?' · '+fail+' не загрузились. Проверь загрузку и доступность GLB-файлов.':'')}
 for(const obj of objects){loader.load(obj.path,gltf=>{const root=gltf.scene,bounds=new THREE.Box3().setFromObject(root),size=bounds.getSize(new THREE.Vector3());if(size.y<=0)throw Error('empty model');root.scale.setScalar(obj.height/size.y);root.updateMatrixWorld(true);const fitted=new THREE.Box3().setFromObject(root),center=fitted.getCenter(new THREE.Vector3());root.position.set(obj.x-center.x,-fitted.min.y,obj.z-center.z);root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(root);success++;report()},undefined,e=>{console.error(obj.name,e);fail++;report()})}
 document.querySelector('#turn').onclick=()=>{camera.position.set(-camera.position.z,4,camera.position.x);orbit.update()};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
