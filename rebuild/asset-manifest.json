@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "license": "CC0",
+  "source": "Poly Haven",
+  "assets": [
+    {
+      "id": "gothic_bed",
+      "name": "Gothic Bed 01",
+      "source": "https://polyhaven.com/a/GothicBed_01",
+      "glbReference": "https://www.innerscene.com/tools/library/3d-parts/gothic-four-poster-bed-e3dd07dc",
+      "localPath": "assets/real/gothic-bed.glb",
+      "status": "awaiting locally hosted verified binary"
+    },
+    {
+      "id": "gothic_cabinet",
+      "name": "Gothic Cabinet 01",
+      "source": "https://www.innerscene.com/tools/library/3d-parts/gothic-cabinet-31ea1990",
+      "localPath": "assets/real/gothic-cabinet.glb",
+      "status": "awaiting locally hosted verified binary"
+    }
+  ]
+}
