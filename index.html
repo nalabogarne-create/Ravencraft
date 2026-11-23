@@ -163,7 +163,7 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const a=aurel.g.position,l=lia.g.position;const angle=Math.atan2(l.x-a.x,l.z-a.z);
  // Aurel's local front points toward -Z. Face Lia directly and position her in front, not behind.
  aurel.g.rotation.y=angle+Math.PI;
- const facing=new T.Vector3(Math.sin(aurel.g.rotation.y),0,-Math.cos(aurel.g.rotation.y));
+ const facing=new T.Vector3(-Math.sin(aurel.g.rotation.y),0,-Math.cos(aurel.g.rotation.y));
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
