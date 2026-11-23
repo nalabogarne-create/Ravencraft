@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080810;color:#e8d9c4;font:14px Georgia,serif;touch-action:none}canvas{display:block}#top{position:fixed;top:10px;left:12px;text-shadow:0 2px 8px #000;pointer-events:none}#top b{font-size:19px;letter-spacing:2px}#tip{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#100f19cc;padding:9px 16px;border:1px solid #9e835a;border-radius:20px;white-space:nowrap;pointer-events:none}#joy{position:fixed;bottom:38px;left:28px;width:108px;height:108px;border-radius:50%;border:2px solid #c5b3a46b;background:#ffffff10;touch-action:none}#nub{position:absolute;left:35px;top:35px;width:38px;height:38px;border-radius:50%;background:#c4a98288}#hug{position:fixed;bottom:48px;right:26px;border-radius:50%;width:78px;height:78px;border:2px solid #b9956c;background:#281724d9;color:#fff;font:15px Georgia}#status{position:fixed;top:12px;right:12px;color:#e7c8a0;font:12px sans-serif}#err{position:fixed;top:65px;left:12px;color:#ffc3a5}</style></head><body><div id="top"><b>RAVENCRAFT</b><div>Готическая спальня · Web Edition</div></div><div id="status">Загрузка…</div><div id="err"></div><div id="joy"><div id="nub"></div></div><button id="hug">Обнять</button><div id="tip">Левый круг — идти · проведи справа — осмотреться</div><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"}}</script><script type="module">
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080810;color:#e8d9c4;font:14px Georgia,serif;touch-action:none}canvas{display:block}#top{position:fixed;top:10px;left:12px;text-shadow:0 2px 8px #000;pointer-events:none}#top b{font-size:19px;letter-spacing:2px}#tip{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#100f19cc;padding:9px 16px;border:1px solid #9e835a;border-radius:20px;white-space:nowrap;pointer-events:none}#joy{position:fixed;bottom:38px;left:28px;width:108px;height:108px;border-radius:50%;border:2px solid #c5b3a46b;background:#ffffff10;touch-action:none}#nub{position:absolute;left:35px;top:35px;width:38px;height:38px;border-radius:50%;background:#c4a98288}#hug{position:fixed;bottom:48px;right:26px;border-radius:50%;width:78px;height:78px;border:2px solid #b9956c;background:#281724d9;color:#fff;font:15px Georgia}#status{position:fixed;top:12px;right:12px;color:#e7c8a0;font:12px sans-serif}#err{position:fixed;top:65px;left:12px;color:#ffc3a5}</style></head><body><div id="top"><b>RAVENCRAFT</b><div>Готическая спальня · Web Edition</div></div><div id="status">Загрузка…</div><div id="err"></div><div id="joy"><div id="nub"></div></div><button id="hug">Обнять</button><div id="tip">Левый круг — идти · проведи справа — осмотреться</div><script>window.addEventListener('error',function(e){document.getElementById('err').textContent='Ошибка: '+(e.message||'неизвестная')});window.addEventListener('unhandledrejection',function(e){document.getElementById('err').textContent='Ошибка загрузки: '+String(e.reason).slice(0,150)});</script><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"}}</script><script type="module">
 import * as T from 'https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js';
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/loaders/GLTFLoader.js';
 const scene=new T.Scene();scene.background=new T.Color(0x10121c);scene.fog=new T.FogExp2(0x10121c,.024);
@@ -60,43 +60,7 @@ box(6.2,.23,1.5,6,.14,-9.9,marble);box(6.25,.24,1.7,6,4.99,-10.45,marble);
 for(let x of [3.8,8.2]){for(let y=1;y<4.7;y+=.8){const knot=new T.Mesh(new T.TorusKnotGeometry(.16,.04,36,6,2,3),gold);knot.position.set(x,y,-10.02);scene.add(knot)}}
 
 
-// Guaranteed local 3D furniture: actual curved meshes, not missing remote links.
-// Hand-built detailed lathed and extruded objects; works without external downloads.
-const mahogany=mat(0x321a17,.45),gilt=mat(0x9c7541,.3,.65),plush=mat(0x4d142c,.96),pearl=mat(0xc8b4a3,.74);
-function latheAt(points,x,y,z,m,scale=1){
- const mesh=new T.Mesh(new T.LatheGeometry(points.map(p=>new T.Vector2(p[0],p[1])),28),m);
- mesh.position.set(x,y,z);mesh.scale.setScalar(scale);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
-}
-function carvedScroll(x,y,z,scale=1,rotation=0){
- const path=new T.CatmullRomCurve3(Array.from({length:24},(_,i)=>{const t=i/23*Math.PI*2;const radius=.05+.36*(1-i/24);return new T.Vector3(Math.cos(t+rotation)*radius*scale,Math.sin(t+rotation)*radius*scale,0)}));
- const mesh=new T.Mesh(new T.TubeGeometry(path,60,.035*scale,6,false),gilt);mesh.position.set(x,y,z);scene.add(mesh);return mesh;
-}
-function ornateChest(x,z){
- // Rounded solid chest, turned legs, drawer panels and curled metal handles.
- box(2.65,1.32,1.15,x,.98,z,mahogany);
- box(2.85,.18,1.38,x,1.72,z,wood);
- for(let sx of [-1,1])for(let sz of [-1,1]){
-  latheAt([[0,0],[.11,.04],[.15,.2],[.11,.37],[.19,.51],[.16,.69]],x+sx*1.14,.02,z+sz*.44,mahogany);
- }
- for(let y of [.86,1.35]){
-  box(2.28,.44,.08,x,y,z-.61,carved);
-  for(let xx of [-.84,.84]){carvedScroll(x+xx,y,z-.665,.38);sphere(.065,x+xx,y,z-.72,gilt)}
- }
- for(let xx of [-1.24,1.24])for(let yy of [.43,1.6])sphere(.07,x+xx,yy,z-.58,gilt);
-}
-ornateChest(10,4.5);
-function gothicMirror(x,z){
- const frame=box(1.9,2.9,.18,x,4.55,z,gilt,false);
- box(1.63,2.65,.19,x,4.55,z-.12,mat(0x2c3b52,.15,.68),false);
- for(let i=0;i<7;i++){const a=Math.PI*i/6;const p=localMesh(new T.ConeGeometry(.12,.48,7),gilt,x+Math.cos(a)*.91,6.0+Math.sin(a)*.22,z-.11);p.rotation.z=-a}
- carvedScroll(x,3.13,z-.2,.7);
-}
-gothicMirror(1.7,-11.2);
-for(let x of [-8.6,-3.4])for(let z of [-7.65,-.35]){
- latheAt([[.17,0],[.22,.15],[.14,.31],[.27,.45],[.17,.62],[.2,.78],[.14,.95]],x,5.75,z,gilt,.8);
-}
-for(let i=0;i<10;i++){const x=-8.05+i*.45;carvedScroll(x,5.89,-7.83,.31,i*.4)}
-
+// Temporarily disabled unstable extra meshes to restore mobile rendering.
 // RAVENCRAFT CHAMBER — architectural dressing and atmospheric detail
 const bronze=mat(0x755638,.36,.72),ivory=mat(0xd1b7a1,.85),ink=mat(0x130f18),wine=mat(0x48192e,.91),moonGlass=new T.MeshBasicMaterial({color:0x9db5df,transparent:true,opacity:.47,side:T.DoubleSide});
 function localMesh(geo,m,x,y,z,rx=0,ry=0,rz=0){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
@@ -226,5 +190,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · версия 10';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · восстановление 11';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
