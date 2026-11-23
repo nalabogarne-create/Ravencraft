@@ -59,6 +59,44 @@ for(let z=-10.5;z<11;z+=2.4){box(.13,2.45,2.1,-13.53,1.25,z,panelMat,false);box(
 box(6.2,.23,1.5,6,.14,-9.9,marble);box(6.25,.24,1.7,6,4.99,-10.45,marble);
 for(let x of [3.8,8.2]){for(let y=1;y<4.7;y+=.8){const knot=new T.Mesh(new T.TorusKnotGeometry(.16,.04,36,6,2,3),gold);knot.position.set(x,y,-10.02);scene.add(knot)}}
 
+
+// Guaranteed local 3D furniture: actual curved meshes, not missing remote links.
+// Hand-built detailed lathed and extruded objects; works without external downloads.
+const mahogany=mat(0x321a17,.45),gilt=mat(0x9c7541,.3,.65),plush=mat(0x4d142c,.96),pearl=mat(0xc8b4a3,.74);
+function latheAt(points,x,y,z,m,scale=1){
+ const mesh=new T.Mesh(new T.LatheGeometry(points.map(p=>new T.Vector2(p[0],p[1])),28),m);
+ mesh.position.set(x,y,z);mesh.scale.setScalar(scale);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
+}
+function carvedScroll(x,y,z,scale=1,rotation=0){
+ const path=new T.CatmullRomCurve3(Array.from({length:24},(_,i)=>{const t=i/23*Math.PI*2;const radius=.05+.36*(1-i/24);return new T.Vector3(Math.cos(t+rotation)*radius*scale,Math.sin(t+rotation)*radius*scale,0)}));
+ const mesh=new T.Mesh(new T.TubeGeometry(path,60,.035*scale,6,false),gilt);mesh.position.set(x,y,z);scene.add(mesh);return mesh;
+}
+function ornateChest(x,z){
+ // Rounded solid chest, turned legs, drawer panels and curled metal handles.
+ box(2.65,1.32,1.15,x,.98,z,mahogany);
+ box(2.85,.18,1.38,x,1.72,z,wood);
+ for(let sx of [-1,1])for(let sz of [-1,1]){
+  latheAt([[0,0],[.11,.04],[.15,.2],[.11,.37],[.19,.51],[.16,.69]],x+sx*1.14,.02,z+sz*.44,mahogany);
+ }
+ for(let y of [.86,1.35]){
+  box(2.28,.44,.08,x,y,z-.61,carved);
+  for(let xx of [-.84,.84]){carvedScroll(x+xx,y,z-.665,.38);sphere(.065,x+xx,y,z-.72,gilt)}
+ }
+ for(let xx of [-1.24,1.24])for(let yy of [.43,1.6])sphere(.07,x+xx,yy,z-.58,gilt);
+}
+ornateChest(10,4.5);
+function gothicMirror(x,z){
+ const frame=box(1.9,2.9,.18,x,4.55,z,gilt,false);
+ box(1.63,2.65,.19,x,4.55,z-.12,mat(0x2c3b52,.15,.68),false);
+ for(let i=0;i<7;i++){const a=Math.PI*i/6;const p=localMesh(new T.ConeGeometry(.12,.48,7),gilt,x+Math.cos(a)*.91,6.0+Math.sin(a)*.22,z-.11);p.rotation.z=-a}
+ carvedScroll(x,3.13,z-.2,.7);
+}
+gothicMirror(1.7,-11.2);
+for(let x of [-8.6,-3.4])for(let z of [-7.65,-.35]){
+ latheAt([[.17,0],[.22,.15],[.14,.31],[.27,.45],[.17,.62],[.2,.78],[.14,.95]],x,5.75,z,gilt,.8);
+}
+for(let i=0;i<10;i++){const x=-8.05+i*.45;carvedScroll(x,5.89,-7.83,.31,i*.4)}
+
 // RAVENCRAFT CHAMBER — architectural dressing and atmospheric detail
 const bronze=mat(0x755638,.36,.72),ivory=mat(0xd1b7a1,.85),ink=mat(0x130f18),wine=mat(0x48192e,.91),moonGlass=new T.MeshBasicMaterial({color:0x9db5df,transparent:true,opacity:.47,side:T.DoubleSide});
 function localMesh(geo,m,x,y,z,rx=0,ry=0,rz=0){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
@@ -143,9 +181,11 @@ function person(isLia,x,z){
  const arms=[],legs=[];
  for(let side of [-1,1]){
   const shoulder=new T.Group();shoulder.position.set(side*(isLia?.32:.41),1.93,0);g.add(shoulder);
-  ball(shoulder,side*.015,-.38,0,.115,.43,.12,dress);
-  ball(shoulder,side*.02,-.83,-.02,.085,.12,.085,face);
-  arms.push(shoulder);
+  ball(shoulder,0,-.24,0,.115,.29,.115,dress);
+  const elbow=new T.Group();elbow.position.set(0,-.49,0);shoulder.add(elbow);
+  ball(elbow,0,-.21,0,.10,.27,.105,dress);
+  ball(elbow,0,-.46,0,.082,.105,.082,face);
+  shoulder.userData.elbow=elbow;arms.push(shoulder);
   const hip=new T.Group();hip.position.set(side*.18,.93,0);g.add(hip);
   ball(hip,0,-.33,0,.145,.46,.15,isLia?mat(0x1b1820):dress);
   ball(hip,0,-.78,-.11,.17,.13,.29,mat(0x111017));legs.push(hip);
@@ -153,36 +193,32 @@ function person(isLia,x,z){
  return {g,arms,legs};
 }
 
-// Real CC0 photogrammetry-based Gothic furniture from Poly Haven (1K mobile variant).
-// Poly Haven distributes glTF with adjacent PBR texture files; no imaginary .glb names.
-const furnitureLoader=new GLTFLoader();
-async function loadGothic(assetId,at,width,clearOriginal=false){
- try{
-  const r=await fetch('https://api.polyhaven.com/files/'+assetId);
-  if(!r.ok)throw Error('Asset metadata unavailable '+r.status);
-  const json=await r.json(),group=json.gltf||json.GLTF||json.glTF;
-  if(!group)throw Error('glTF not available');
-  const variants=Object.keys(group);const k=variants.find(k=>k.toLowerCase()==='1k')||variants.find(k=>k.toLowerCase()==='2k')||variants[0];
-  const pack=group[k];let gltf=pack?.gltf?.url||pack?.gltf?.file?.url||pack?.url;
-  if(!gltf)throw Error('No glTF URL in '+assetId);
-  const loaded=await new Promise((resolve,reject)=>furnitureLoader.load(gltf,resolve,undefined,reject));
-  const root=loaded.scene;root.updateMatrixWorld(true);
-  const bounds=new T.Box3().setFromObject(root),dims=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
-  const scale=width/Math.max(dims.x,dims.z);root.scale.setScalar(scale);
-  root.position.set(at[0]-center.x*scale,at[1]-bounds.min.y*scale,at[2]-center.z*scale);
-  root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
-  if(clearOriginal){for(const o of scene.children){if(!o.isMesh||o===root)continue;const p=o.position;if(p.x>-8.9&&p.x< -3.1&&p.z>-8.1&&p.z<.1&&p.y>.4&&p.y<6.4&&o.geometry?.type!=='SphereGeometry'&&o.geometry?.type!=='TorusGeometry')o.visible=false}}
-  scene.add(root);document.getElementById('status').textContent='Резная мебель · 3D';
- }catch(e){console.warn('Furniture fallback',assetId,e)}
-}
-loadGothic('GothicBed_01',[-6,0,-4],5.1,true);
-loadGothic('GothicCabinet_01',[-11,0,-7],2.4);
-const lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
+// External asset loading disabled until files are validated and hosted locally.\nconst lia=person(true,0,4),aurel=person(false,3,-2);let yaw=0,pitch=.32,zoom=6.5,joyX=0,joyY=0,hugUntil=0;const keys={};
 document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 const joy=document.getElementById('joy'),nub=document.getElementById('nub');function moveJoy(e){const r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const q=Math.min(1,48/Math.max(1,Math.hypot(dx,dy)));joyX=dx*q/48;joyY=-dy*q/48;nub.style.transform='translate('+joyX*38+'px,'+-joyY*38+'px)'}joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);moveJoy(e)});joy.addEventListener('pointermove',e=>{if(joy.hasPointerCapture(e.pointerId))moveJoy(e)});function release(){joyX=joyY=0;nub.style.transform=''}joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
 let lastX=0,lastY=0,drag=false;renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY});renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-lastX)*.005;pitch=Math.max(.05,Math.min(.9,pitch+(e.clientY-lastY)*.003));lastX=e.clientX;lastY=e.clientY});renderer.domElement.addEventListener('pointerup',()=>drag=false);
 document.getElementById('hug').onclick=()=>{if(lia.g.position.distanceTo(aurel.g.position)<2.6){hugUntil=performance.now()+3500;document.getElementById('tip').textContent='Аурель обнимает Лию ♥'}else document.getElementById('tip').textContent='Подойди ближе к Аурелю ♥'};
-const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternion();function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05),f=joyY+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),s=joyX+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const mag=Math.max(1,Math.hypot(f,s));let dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*dt*3/mag,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*dt*3/mag;lia.g.position.x=Math.max(-12,Math.min(12,lia.g.position.x+dx));lia.g.position.z=Math.max(-10,Math.min(10,lia.g.position.z+dz));if(Math.abs(dx)+Math.abs(dz)>.002 && performance.now()>hugUntil){const desired=Math.atan2(-dx,-dz);lia.g.rotation.y+=Math.atan2(Math.sin(desired-lia.g.rotation.y),Math.cos(desired-lia.g.rotation.y))*Math.min(1,dt*11)}const h=performance.now()<hugUntil;const moving=Math.abs(dx)+Math.abs(dz)>.002;if(moving&&!h)walkPhase+=dt*10;for(const leg of lia.legs){leg.rotation.x=T.MathUtils.lerp(leg.rotation.x,moving&&!h?Math.sin(walkPhase+(leg===lia.legs[0]?0:Math.PI))*.37:0,.16)}if(h){
+
+// Solid room and furniture collision. Character radius is about 0.36 world units.
+const solidAreas=[
+ {x:-6,z:-4,hx:2.98,hz:3.95}, // four-poster bed and columns
+ {x:6,z:-10.4,hx:3.25,hz:1.15}, // fireplace and hearth
+ {x:-11,z:-3,hx:1.15,hz:1.0}, {x:-1,z:-3,hx:1.15,hz:1.0}, // tables
+ {x:-10,z:5,hx:1.35,hz:1.35}, // armchair
+ {x:0,z:0,hx:1.9,hz:1.9}, // chandelier stand-free: remove from collision below
+ {x:-11,z:-7,hx:1.5,hz:1.25} // cabinet
+].filter(a=>!(a.x===0&&a.z===0));
+function canStand(x,z){
+ const r=.34;if(x< -13.15+r||x>13.15-r||z< -11.15+r||z>11.15-r)return false;
+ return !solidAreas.some(a=>Math.abs(x-a.x)<a.hx+r&&Math.abs(z-a.z)<a.hz+r);
+}
+function walkWithCollision(obj,dx,dz){
+ const p=obj.position;
+ if(canStand(p.x+dx,p.z))p.x+=dx;
+ if(canStand(p.x,p.z+dz))p.z+=dz;
+}
+
+const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternion();function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05),f=joyY+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),s=joyX+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const mag=Math.max(1,Math.hypot(f,s));let dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*dt*3/mag,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*dt*3/mag;if(performance.now()>=hugUntil)walkWithCollision(lia.g,dx,dz);if(Math.abs(dx)+Math.abs(dz)>.002 && performance.now()>hugUntil){const desired=Math.atan2(-dx,-dz);lia.g.rotation.y+=Math.atan2(Math.sin(desired-lia.g.rotation.y),Math.cos(desired-lia.g.rotation.y))*Math.min(1,dt*11)}const h=performance.now()<hugUntil;const moving=Math.abs(dx)+Math.abs(dz)>.002;if(moving&&!h)walkPhase+=dt*10;for(const leg of lia.legs){leg.rotation.x=T.MathUtils.lerp(leg.rotation.x,moving&&!h?Math.sin(walkPhase+(leg===lia.legs[0]?0:Math.PI))*.37:0,.16)}if(h){
  const a=aurel.g.position,l=lia.g.position;const angle=Math.atan2(l.x-a.x,l.z-a.z);
  // Aurel's local front points toward -Z. Face Lia directly and position her in front, not behind.
  aurel.g.rotation.y=angle+Math.PI;
@@ -190,5 +226,5 @@ const clock=new T.Clock();let walkPhase=0;const targetQuaternion=new T.Quaternio
  const destination=a.clone().addScaledVector(facing,0.72);
  lia.g.position.lerp(destination,Math.min(1,dt*4.8));
  lia.g.rotation.y+=Math.atan2(Math.sin(aurel.g.rotation.y+Math.PI-lia.g.rotation.y),Math.cos(aurel.g.rotation.y+Math.PI-lia.g.rotation.y))*Math.min(1,dt*8);
-}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.05:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.25:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · версия 9';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}for(const p of [lia,aurel]){for(let i=0;i<2;i++){const arm=p.arms[i];const side=i===0?-1:1;arm.rotation.z=T.MathUtils.lerp(arm.rotation.z,h?-side*.65:0,.11);arm.rotation.x=T.MathUtils.lerp(arm.rotation.x,h?1.12:0,.11);arm.rotation.y=T.MathUtils.lerp(arm.rotation.y,h?side*.15:0,.11);arm.userData.elbow.rotation.x=T.MathUtils.lerp(arm.userData.elbow.rotation.x,h?1.35:0,.11)}}camera.position.lerp(new T.Vector3(lia.g.position.x+Math.sin(yaw)*zoom,lia.g.position.y+2.3+Math.sin(pitch)*3,lia.g.position.z+Math.cos(yaw)*zoom),.14);camera.lookAt(lia.g.position.x,1.45,lia.g.position.z);fire.intensity=95+Math.sin(performance.now()*.013)*12;chamberAnimate(performance.now());renderer.render(scene,camera)}loop();document.getElementById('status').textContent='Ravencraft · версия 10';window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
