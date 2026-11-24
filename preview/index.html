@@ -53,9 +53,20 @@ function pbr(mat,id,rx,ry){for(const [suffix,key] of [['color','map'],['normal',
  texLoader.load(base+id+'_'+suffix+'.jpg',t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);if(suffix==='color')t.colorSpace=THREE.SRGBColorSpace;mat[key]=t;mat.needsUpdate=true},undefined,()=>{});
 }}
 pbr(stone,'wall',4,2);pbr(wood,'wood',2,2);pbr(floorPBR,'floor',4,4);
-const moonGlass=new THREE.MeshStandardMaterial({color:0x8596b2,emissive:0x35415c,emissiveIntensity:.38,roughness:.18,metalness:.18,side:THREE.DoubleSide});
+const moonGlass=new THREE.MeshStandardMaterial({color:0x27374e,emissive:0x162139,emissiveIntensity:.17,roughness:.18,metalness:.18,side:THREE.DoubleSide});
 const brass=new THREE.MeshStandardMaterial({color:0x9c7653,metalness:.7,roughness:.38});
 wall(14,6,0,3,-5,stone);wall(11,6,-7,3,.5,stone,Math.PI/2);wall(11,6,7,3,.5,stone,-Math.PI/2);
+// Full enclosure: four solid stone walls and an actual timber ceiling.
+wall(14,6,0,3,6,stone,Math.PI);
+const ceilingMaterial=new THREE.MeshStandardMaterial({map:surface('wood'),color:0xffffff,roughness:.86,side:THREE.DoubleSide});
+ceilingMaterial.map.repeat.set(2,2);
+const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(14,11),ceilingMaterial);
+ceiling.rotation.x=Math.PI/2;ceiling.position.set(0,6,.5);ceiling.receiveShadow=true;room.add(ceiling);
+for(let x=-6;x<=6;x+=3){const r=new THREE.Mesh(new THREE.BoxGeometry(.19,.22,11),wood);r.position.set(x,5.88,.5);r.castShadow=true;room.add(r)}
+// An inset doorway on the side wall; detailed door mesh is imported when available.
+const doorMat=new THREE.MeshStandardMaterial({map:surface('wood'),color:0xffffff,roughness:.75,side:THREE.DoubleSide});
+const doorPanel=new THREE.Mesh(new THREE.PlaneGeometry(1.85,3.45),doorMat);doorPanel.rotation.y=Math.PI/2;doorPanel.position.set(-6.92,1.74,3.2);room.add(doorPanel);
+
 function beam(w,h,d,x,y,z,mat=wood){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;room.add(m);return m}
 for(const x of [-6.6,6.6])beam(.24,6,.28,x,3,-4.8);
 for(const y of [.45,5.65])beam(14,.17,.22,0,y,-4.78);
@@ -73,7 +84,7 @@ camera.position.set(6.4,3.6,8.8);orbit.target.set(-.2,1.3,-.5);orbit.update();
 
 const loader=new GLTFLoader();let success=0,fail=0;
 const objects=[{name:'Готическая кровать',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/gothic-bed.glb',x:-2,z:0,height:2.8,lift:0},{name:'Резной шкаф',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/gothic-cabinet.glb',x:2.4,z:-1,height:2.4,lift:0},{name:'Старинная люстра',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/chandelier.glb',x:0,z:-0.5,height:1.1,lift:4.65},{name:'Замковая дверь',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/castle-door.glb',x:-4.5,z:-4.4,height:3.3,lift:0},{name:'Напольные часы',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/clock.glb',x:5.2,z:-3.5,height:2.3,lift:0},{name:'Подсвечник',path:'https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/candlestick.glb',x:1.6,z:2.1,height:0.8,lift:0.85}];
-function report(){status.textContent='Готическая спальня · 3D-мебель: '+success+' из '+objects.length+' моделей загружено'+(fail?' · '+fail+' не загрузились. Проверь загрузку и доступность GLB-файлов.':'')}
+function report(){status.textContent='Готическая спальня · закрытая комната · 3D-мебель: '+success+' из '+objects.length+' моделей загружено'+(fail?' · '+fail+' не загрузились. Проверь загрузку и доступность GLB-файлов.':'')}
 for(const obj of objects){loader.load(obj.path,gltf=>{const root=gltf.scene,bounds=new THREE.Box3().setFromObject(root),size=bounds.getSize(new THREE.Vector3());if(size.y<=0)throw Error('empty model');root.scale.setScalar(obj.height/size.y);root.updateMatrixWorld(true);const fitted=new THREE.Box3().setFromObject(root),center=fitted.getCenter(new THREE.Vector3());root.position.set(obj.x-center.x,-fitted.min.y+(obj.lift||0),obj.z-center.z);root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(root);success++;report()},undefined,e=>{console.error(obj.name,e);fail++;report()})}
 document.querySelector('#turn').onclick=()=>{camera.position.set(-camera.position.z,4,camera.position.x);orbit.update()};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
