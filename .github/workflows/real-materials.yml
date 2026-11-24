@@ -1,0 +1,29 @@
+name: Import photographic PBR assets for Gothic room
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rebuild/download-real-materials.py'
+      - '.github/workflows/real-materials.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import-materials:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install requests pillow
+      - name: Download photographic CC0 diffuse, normal, roughness maps
+        run: python rebuild/download-real-materials.py
+      - name: Commit actual image files to GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/pbr
+          git diff --cached --quiet || (git commit -m "Install photographed stone and wood PBR textures" && git push)
