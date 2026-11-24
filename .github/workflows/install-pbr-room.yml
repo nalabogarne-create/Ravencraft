@@ -1,0 +1,55 @@
+name: Install photographic PBR stone and wooden floor
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/install-pbr-room.yml'
+permissions:
+  contents: write
+jobs:
+  textures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download verified Poly Haven CC0 PBR maps
+        run: |
+          python3 - <<'PY'
+          import requests, pathlib, sys
+          root=pathlib.Path('assets/pbr');root.mkdir(parents=True,exist_ok=True)
+          catalog=requests.get('https://api.polyhaven.com/assets?t=textures',timeout=60).json()
+          def choose(words):
+              candidates=[(k,v) for k,v in catalog.items() if any(w in (k+' '+str(v.get('name',''))).lower() for w in words)]
+              if not candidates: raise RuntimeError('No matching textures: '+str(words))
+              return candidates[0][0]
+          targets={'wall': ['stone_block_wall','castle_wall_slates','old_stone_wall'], 'floor':['old_wooden_floor','wood_floor','wooden_planks'], 'wood':['dark_paneled_wood','wood_table_worn','brown_planks']}
+          for target,keys in targets.items():
+              ident=next((k for k in keys if k in catalog),None) or choose(keys)
+              files=requests.get('https://api.polyhaven.com/files/'+ident,timeout=60).json()
+              print(target,ident,flush=True)
+              for suffix,channel in [('color','Diffuse'),('normal','nor_gl'),('rough','Rough')]:
+                  choices=files.get(channel,{})
+                  variants=choices.get('1k') or choices.get('2k') or choices.get('4k')
+                  if not variants:
+                      if suffix=='color': raise RuntimeError('Missing color map '+ident)
+                      continue
+                  item=variants.get('jpg') or variants.get('png') or variants.get('webp')
+                  if not item:
+                      if suffix=='color': raise RuntimeError('Missing jpg/png '+ident)
+                      continue
+                  url=item['url']; response=requests.get(url,timeout=120);response.raise_for_status()
+                  ext=url.split('?')[0].rsplit('.',1)[-1].lower()
+                  if ext not in ('jpg','jpeg','png','webp'): ext='jpg'
+                  from PIL import Image
+                  from io import BytesIO
+                  im=Image.open(BytesIO(response.content)).convert('RGB')
+                  im.thumbnail((1024,1024))
+                  im.save(root/(target+'_'+suffix+'.jpg'),quality=86,optimize=True)
+          PY
+      - name: Commit PBR files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/pbr
+          git diff --cached --quiet || (git commit -m 'Install real CC0 PBR stone and wood textures' && git push)
