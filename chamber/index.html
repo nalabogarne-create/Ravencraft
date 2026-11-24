@@ -14,15 +14,15 @@ const stone=mat(0x555058),timber=mat(0x38231f),floorMat=mat(0x312019),metal=mat(
 const tex=new THREE.TextureLoader();
 const path='/Ravencraft/assets/pbr/';
 const info=document.getElementById('info');
-let loadedMaps=0,loadedModels=0,failedModels=0;
-function status(){info.textContent='Фототекстуры: '+loadedMaps+' · настоящие 3D-модели: '+loadedModels+' · ошибки моделей: '+failedModels}
+let loadedMaps=0,failedMaps=0,loadedModels=0,failedModels=0;
+function status(){info.textContent='PBR: '+loadedMaps+'/9 · ошибок текстур: '+failedMaps+' · GLB: '+loadedModels+'/5 · ошибок GLB: '+failedModels}
 function maps(material,name,rx,ry){
  for(const [type,property] of [['color','map'],['normal','normalMap'],['rough','roughnessMap']]){
   tex.load(path+name+'_'+type+'.jpg',t=>{
    t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
    if(type==='color'){t.colorSpace=THREE.SRGBColorSpace;material.color.set(0xffffff)}
    material[property]=t;if(type==='rough')material.roughness=1;material.needsUpdate=true;loadedMaps++;status()
-  },undefined,()=>{});
+  },undefined,()=>{failedMaps++;status()});
  }
 }
 maps(stone,'wall',3,2);maps(floorMat,'floor',3,3);maps(timber,'wood',3,2);
@@ -38,7 +38,7 @@ panel(5.6,5.5,3.2,2.75,5.5,Math.PI);
 panel(2.8,1.2,-.9,4.9,5.5,Math.PI);
 panel(2.8,1.1,-.9,.55,5.5,Math.PI);
 panel(.2,3.2,-2.2,2.7,5.5,Math.PI);panel(.2,3.2,.4,2.7,5.5,Math.PI);
-const glass=mat(0x192438,.22);glass.transparent=true;glass.opacity=.7;panel(2.6,3.2,-.9,2.7,5.48,Math.PI,glass);
+const glass=mat(0x26324b,.2);const windowPane=panel(2.6,3.2,-.9,2.7,5.48,Math.PI,glass);tex.load('/Ravencraft/assets/stained-glass.svg',t=>{t.colorSpace=THREE.SRGBColorSpace;glass.map=t;glass.color.set(0xffffff);glass.emissive=new THREE.Color(0x252030);glass.emissiveMap=t;glass.emissiveIntensity=.24;glass.needsUpdate=true},undefined,()=>{info.textContent+=' · витраж не загрузился'});
 for(const x of [-2.2,-.9,.4])box(.09,3.4,.14,x,2.7,5.4,metal);
 for(const y of [1.8,3.1,4.25])box(2.7,.09,.14,-.9,y,5.4,metal);
 const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(12,11),timber);ceiling.rotation.x=Math.PI/2;ceiling.position.y=5.5;scene.add(ceiling);
@@ -48,6 +48,20 @@ const carpet=new THREE.Mesh(new THREE.PlaneGeometry(6.6,4.7),velvet);carpet.rota
 const gold=mat(0x866342,.36);
 for(const z of [-1.52,3.12])box(6.65,.018,.05,-1,.034,z,gold);
 for(const x of [-4.3,2.3])box(.05,.018,4.65,x,.034,.8,gold);
+// Fireplace: PBR stone surround and animated transparent flame shader. This is not a downloaded GLB fireplace.
+const hearth=mat(0x171216);const darkStone=mat(0x343037);
+const fx=3.7,fz=-5.20;
+box(3.15,.28,.75,fx,.17,fz+.28,stone);
+box(.44,3.3,.7,fx-1.31,1.65,fz+.27,stone);
+box(.44,3.3,.7,fx+1.31,1.65,fz+.27,stone);
+box(3.25,.48,.82,fx,3.32,fz+.27,stone);
+box(2.42,2.65,.10,fx,1.65,fz-.08,hearth);
+const grate=box(2.15,.11,.25,fx,.28,fz+.63,metal);
+for(let i=0;i<9;i++)box(.055,.6,.08,fx-1.0+i*.25,.55,fz+.70,metal);
+const fireShader=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`precision mediump float;uniform float uTime;varying vec2 vUv;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}void main(){vec2 p=vUv;float n=noise(vec2(p.x*5.+uTime*.55,p.y*4.-uTime*2.2));float n2=noise(vec2(p.x*11.-uTime*.7,p.y*9.-uTime*3.));float height=.25+.55*(1.-abs(p.x-.5)*1.5)+.19*n;float shape=smoothstep(.0,.12,p.y)*smoothstep(height,height-.22,p.y);float tongues=smoothstep(.44,.9,n*.7+n2*.4);float alpha=shape*(.55+.45*tongues)*smoothstep(.0,.16,p.x)*smoothstep(1.,.84,p.x);vec3 col=mix(vec3(1.,.17,.018),vec3(1.,.75,.17),clamp(p.y*.9+n2*.5,0.,1.));col=mix(col,vec3(1.,.95,.65),smoothstep(.0,.3,p.y)*(.5+n2*.5));gl_FragColor=vec4(col,alpha*.9);}`});
+for(let i=0;i<3;i++){const flame=new THREE.Mesh(new THREE.PlaneGeometry(1.55+i*.27,1.7+i*.14),fireShader);flame.position.set(fx+(i-1)*.13,1.05,fz+.36+i*.09);scene.add(flame)}
+for(let i=0;i<4;i++){const log=box(1.35,.13,.15,fx+(i-1.5)*.06,.36+i*.065,fz+.62,mat(0x2d1710));log.rotation.z=(i%2?.17:-.15)}
+fire.position.set(fx,1.5,fz+.5);
 const base='https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/';
 const items=[
  ['gothic-bed.glb',-2.3,-.4,2.65,0,0],
@@ -69,5 +83,5 @@ for(const [file,x,z,height,lift,rotation] of items){
 }
 status();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-function tick(){requestAnimationFrame(tick);controls.update();renderer.render(scene,camera)}tick();
+const clock=new THREE.Clock();function tick(){requestAnimationFrame(tick);fireShader.uniforms.uTime.value=clock.getElapsedTime();fire.intensity=13+Math.sin(clock.elapsedTime*9)*2.5+Math.sin(clock.elapsedTime*17)*1.4;controls.update();renderer.render(scene,camera)}tick();
 </script></body></html>
