@@ -1,0 +1,73 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08080e;color:#e8d6c8;font:15px Georgia,serif}#ui{position:fixed;z-index:5;top:12px;left:12px;right:12px;background:#09070bbb;border:1px solid #6a4c42;border-radius:8px;padding:10px 14px;pointer-events:none}#info{font-size:13px;color:#bda69a}#tip{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);font-size:13px;background:#09070bd8;padding:8px 14px;border-radius:20px;white-space:nowrap;pointer-events:none}canvas{display:block}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><div id="ui">RAVENCRAFT · Gothic Chamber<div id="info">Загрузка настоящих 3D-моделей и материалов…</div></div><div id="tip">Проведи пальцем, чтобы осмотреть комнату</div><script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#080a11');scene.fog=new THREE.FogExp2('#0b0b13',.015);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.06,100);camera.position.set(4.7,2.3,5.7);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.85;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.append(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(-.3,1.45,-.6);controls.enableDamping=true;controls.minDistance=1.2;controls.maxDistance=8;controls.maxPolarAngle=Math.PI*.51;controls.update();
+const ambient=new THREE.HemisphereLight(0x7687aa,0x211313,1.05);scene.add(ambient);
+const moon=new THREE.DirectionalLight(0x94a8d4,1.35);moon.position.set(1,5,2);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);
+const fire=new THREE.PointLight(0xff8e49,16,9,2);fire.position.set(4,1.6,-3.7);scene.add(fire);
+const mat=(color,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness,side:THREE.DoubleSide});
+const stone=mat(0x555058),timber=mat(0x38231f),floorMat=mat(0x312019),metal=mat(0x4c352c,.32),velvet=mat(0x37101b,1);
+const tex=new THREE.TextureLoader();
+const path='/Ravencraft/assets/pbr/';
+const info=document.getElementById('info');
+let loadedMaps=0,loadedModels=0,failedModels=0;
+function status(){info.textContent='Фототекстуры: '+loadedMaps+' · настоящие 3D-модели: '+loadedModels+' · ошибки моделей: '+failedModels}
+function maps(material,name,rx,ry){
+ for(const [type,property] of [['color','map'],['normal','normalMap'],['rough','roughnessMap']]){
+  tex.load(path+name+'_'+type+'.jpg',t=>{
+   t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+   if(type==='color'){t.colorSpace=THREE.SRGBColorSpace;material.color.set(0xffffff)}
+   material[property]=t;if(type==='rough')material.roughness=1;material.needsUpdate=true;loadedMaps++;status()
+  },undefined,()=>{});
+ }
+}
+maps(stone,'wall',3,2);maps(floorMat,'floor',3,3);maps(timber,'wood',3,2);
+function box(w,h,d,x,y,z,m){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh}
+function panel(w,h,x,y,z,rotation=0,m=stone){const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m);mesh.position.set(x,y,z);mesh.rotation.y=rotation;mesh.receiveShadow=true;scene.add(mesh);return mesh}
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,11),floorMat);floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+// Four closed walls. A window is an actual gap, not a glowing rectangle pasted over stone.
+panel(12,5.5,0,2.75,-5.5);
+panel(11,5.5,-6,2.75,0,Math.PI/2);
+panel(11,5.5,6,2.75,0,-Math.PI/2);
+panel(3.6,5.5,-4.2,2.75,5.5,Math.PI);
+panel(5.6,5.5,3.2,2.75,5.5,Math.PI);
+panel(2.8,1.2,-.9,4.9,5.5,Math.PI);
+panel(2.8,1.1,-.9,.55,5.5,Math.PI);
+panel(.2,3.2,-2.2,2.7,5.5,Math.PI);panel(.2,3.2,.4,2.7,5.5,Math.PI);
+const glass=mat(0x192438,.22);glass.transparent=true;glass.opacity=.7;panel(2.6,3.2,-.9,2.7,5.48,Math.PI,glass);
+for(const x of [-2.2,-.9,.4])box(.09,3.4,.14,x,2.7,5.4,metal);
+for(const y of [1.8,3.1,4.25])box(2.7,.09,.14,-.9,y,5.4,metal);
+const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(12,11),timber);ceiling.rotation.x=Math.PI/2;ceiling.position.y=5.5;scene.add(ceiling);
+for(const x of [-5.6,-2.8,0,2.8,5.6])box(.24,.28,11,x,5.34,0,timber);
+for(const z of [-5.1,0,5.1])box(12,.22,.24,0,5.32,z,timber);
+const carpet=new THREE.Mesh(new THREE.PlaneGeometry(6.6,4.7),velvet);carpet.rotation.x=-Math.PI/2;carpet.position.set(-1,.025,.8);carpet.receiveShadow=true;scene.add(carpet);
+const gold=mat(0x866342,.36);
+for(const z of [-1.52,3.12])box(6.65,.018,.05,-1,.034,z,gold);
+for(const x of [-4.3,2.3])box(.05,.018,4.65,x,.034,.8,gold);
+const base='https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/';
+const items=[
+ ['gothic-bed.glb',-2.3,-.4,2.65,0,0],
+ ['chandelier.glb',0,-.1,1.15,4.1,0],
+ ['castle-door.glb',5.87,1.7,3.25,0,Math.PI/2],
+ ['clock.glb',4.4,-4.3,2.5,0,0],
+ ['candlestick.glb',-4.3,-2.2,1.15,.6,0]
+];
+const loader=new GLTFLoader();
+for(const [file,x,z,height,lift,rotation] of items){
+ loader.load(base+file,gltf=>{
+  const root=gltf.scene;const bounds=new THREE.Box3().setFromObject(root);const size=bounds.getSize(new THREE.Vector3());if(size.y<=0)throw Error('empty model');
+  root.scale.setScalar(height/size.y);root.updateMatrixWorld(true);
+  const scaled=new THREE.Box3().setFromObject(root);const center=scaled.getCenter(new THREE.Vector3());
+  root.position.set(x-center.x,lift-scaled.min.y,z-center.z);root.rotation.y=rotation;
+  root.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true}});
+  scene.add(root);loadedModels++;status();
+ },undefined,()=>{failedModels++;status()});
+}
+status();
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+function tick(){requestAnimationFrame(tick);controls.update();renderer.render(scene,camera)}tick();
+</script></body></html>
