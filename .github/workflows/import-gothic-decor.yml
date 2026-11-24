@@ -1,0 +1,47 @@
+name: Import more real Gothic furniture
+on:
+  push:
+    branches: [imvu-quality-rebuild]
+    paths: ['rebuild/import-gothic-decor.py', '.github/workflows/import-gothic-decor.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: imvu-quality-rebuild
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download CC0 models with their real textures
+        id: assets
+        run: python3 rebuild/import-gothic-decor.py
+      - name: Convert to GLB
+        run: |
+          npm install --global @gltf-transform/cli
+          mkdir -p assets/real
+          for name in chandelier commode coffee-table castle-door mirror clock candlestick; do
+            key="${name//-/_}"
+            path=$(python3 -c "import os; print(os.environ.get('ASSET_'+os.environ['KEY'],''))" 2>/dev/null) || true
+            case "$name" in
+              chandelier) file="build-assets/chandelier/Chandelier_03.gltf" ;;
+              commode) file="build-assets/commode/GothicCommode_01.gltf" ;;
+              coffee-table) file="build-assets/coffee-table/GothicCoffeeTable.gltf" ;;
+              castle-door) file="build-assets/castle-door/large_castle_door.gltf" ;;
+              mirror) file="build-assets/mirror/ornate_mirror_01.gltf" ;;
+              clock) file="build-assets/clock/vintage_grandfather_clock_01.gltf" ;;
+              candlestick) file="build-assets/candlestick/wooden_candlestick.gltf" ;;
+            esac
+            if test -f "$file"; then
+              gltf-transform copy "$file" "assets/real/$name.glb" || true
+            fi
+          done
+      - name: Commit actual GLB assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/real/
+          git diff --cached --quiet || (git commit -m "Import additional real Gothic furniture and decor" && git push)
