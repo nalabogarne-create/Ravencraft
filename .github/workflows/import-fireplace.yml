@@ -25,31 +25,31 @@ jobs:
           data.raise_for_status()
           j=data.json()
           print('Available formats:',list(j))
-          def find_zip(node):
+          import urllib.parse
+          root=j.get('gltf',{})
+          print('glTF keys',list(root))
+          variant=root.get('1k') or root.get('2k') or next(iter(root.values()))
+          print('variant',str(variant)[:1200])
+          def walk(node):
               if isinstance(node,dict):
-                  for k,v in node.items():
-                      if k.lower() in ('url','download_url') and isinstance(v,str) and ('.zip' in v.lower() or 'gltf' in v.lower()):return v
-                  for k,v in node.items():
-                      if 'gltf' in k.lower():
-                          z=find_zip(v)
-                          if z:return z
-                  for v in node.values():
-                      z=find_zip(v)
-                      if z:return z
-              return None
-          url=find_zip(j.get('gltf',j))
-          if not url:raise RuntimeError('No glTF download URL in Poly Haven API')
-          print('Downloading',url)
-          r=requests.get(url,timeout=180);r.raise_for_status()
-          os.makedirs('tmp-fireplace',exist_ok=True)
-          if r.content[:2]==b'PK':
-              with zipfile.ZipFile(io.BytesIO(r.content)) as z:z.extractall('tmp-fireplace')
-          else:
-              open('tmp-fireplace/model.gltf','wb').write(r.content)
-          for root,dirs,files in os.walk('tmp-fireplace'):
-              for file in files:
-                  if file.endswith('.gltf'):open('/tmp/fireplace-path','w').write(os.path.join(root,file));break
-          assert os.path.exists('/tmp/fireplace-path'),'No glTF found'
+                  if isinstance(node.get('url'),str):yield node['url']
+                  for v in node.values():yield from walk(v)
+              elif isinstance(node,list):
+                  for v in node:yield from walk(v)
+          urls=list(dict.fromkeys(walk(variant)))
+          if not urls:raise RuntimeError('No model urls found')
+          os.makedirs('tmp-fireplace/textures',exist_ok=True)
+          for url in urls:
+              fn=os.path.basename(urllib.parse.urlparse(url).path)
+              if not fn:continue
+              destination='tmp-fireplace/'+('textures/' if fn.lower().endswith(('.jpg','.png','.exr')) else '')+fn
+              print('Download',fn)
+              r=requests.get(url,timeout=120);r.raise_for_status()
+              open(destination,'wb').write(r.content)
+          import glob
+          files=glob.glob('tmp-fireplace/**/*.gltf',recursive=True)
+          assert files,'No glTF found'
+          open('/tmp/fireplace-path','w').write(files[0])
           PY
           npm install --no-save @gltf-transform/cli@4
           mkdir -p assets/real
