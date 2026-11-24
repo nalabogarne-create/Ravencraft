@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08080e;color:#e8d6c8;font:15px Georgia,serif}#ui{position:fixed;z-index:5;top:12px;left:12px;right:12px;background:#09070bbb;border:1px solid #6a4c42;border-radius:8px;padding:10px 14px;pointer-events:none}#info{font-size:13px;color:#bda69a}#tip{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);font-size:13px;background:#09070bd8;padding:8px 14px;border-radius:20px;white-space:nowrap;pointer-events:none}canvas{display:block}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><div id="ui">RAVENCRAFT · Gothic Chamber<div id="info">Загрузка настоящих 3D-моделей и материалов…</div><div id="fireStatus" style="font-size:12px;color:#d8b69d">Камин: загрузка модели…</div></div><div id="tip">Проведи пальцем, чтобы осмотреть комнату</div><script type="module">
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08080e;color:#e8d6c8;font:15px Georgia,serif}#ui{position:fixed;z-index:5;top:12px;left:12px;right:12px;background:#09070bbb;border:1px solid #6a4c42;border-radius:8px;padding:10px 14px;pointer-events:none}#info{font-size:13px;color:#bda69a}#tip{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);font-size:13px;background:#09070bd8;padding:8px 14px;border-radius:20px;white-space:nowrap;pointer-events:none}canvas{display:block}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><div id="ui">RAVENCRAFT · Gothic Chamber<div id="info">Загрузка настоящих 3D-моделей и материалов…</div><div id="fireStatus" style="font-size:12px;color:#d8b69d">Камин: загрузка модели…</div></div><div id="tip">Левый круг — ходить · справа — камера</div><script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -53,17 +53,17 @@ const fx=3.7,fz=-5.22;
 const fire=new THREE.PointLight(0xff8e49,10,7,2);fire.position.set(fx,1.15,fz+1.1);scene.add(fire);
 const fireShader=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform float uTime;varying vec2 vUv;void main(){float n=sin(vUv.x*17.+uTime*4.)*.12+sin(vUv.x*31.-uTime*7.)*.07;float h=.78-abs(vUv.x-.5)*.9+n;float a=smoothstep(.02,.18,vUv.y)*(1.-smoothstep(h-.25,h,vUv.y));vec3 c=mix(vec3(1.,.2,.02),vec3(1.,.8,.22),vUv.y);gl_FragColor=vec4(c,a*.8);}' });
 const fireplaceLoader=new GLTFLoader();
-const fireplaceURL='https://tevy.dev/models/great-hall-fireplace/v1/lod0.glb';
+const fireplaceURL='/Ravencraft/assets/real/fireplace.glb';
 fireplaceLoader.load(fireplaceURL,gltf=>{
  const obj=gltf.scene;obj.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(obj),dim=bb.getSize(new THREE.Vector3());
  if(!Number.isFinite(dim.y)||dim.y<=0)throw Error('Некорректная модель камина');
  const scale=3.9/dim.y;obj.scale.setScalar(scale);obj.updateMatrixWorld(true);
  const fitted=new THREE.Box3().setFromObject(obj),center=fitted.getCenter(new THREE.Vector3());
  obj.position.set(fx-center.x, -fitted.min.y, fz+.12-center.z);
- obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true}});scene.add(obj);
+ obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true}});scene.add(obj);flames.forEach(o=>o.visible=true);
  document.getElementById('fireStatus').textContent='Камин: настоящая 3D-модель загружена';
 },undefined,e=>{console.warn('Fireplace GLB',e);document.getElementById('fireStatus').textContent='Камин: ошибка загрузки 3D-модели';});
-for(let i=0;i<3;i++){const flame=new THREE.Mesh(new THREE.PlaneGeometry(.8+i*.16,1.2),fireShader);flame.position.set(fx+(i-1)*.23,.72,fz+1.12+i*.03);scene.add(flame)}
+const flames=[];for(let i=0;i<3;i++){const flame=new THREE.Mesh(new THREE.PlaneGeometry(.5+i*.12,.9),fireShader);flame.position.set(fx+(i-1)*.18,.65,fz+.72+i*.02);flame.visible=false;scene.add(flame);flames.push(flame)}
 const base='https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/';
 const items=[
  ['gothic-bed.glb',-2.3,-.4,2.65,0,0],
@@ -150,7 +150,47 @@ function person(isLia,x,z){
 
 const lia=person(true,-1.25,1.5),aurel=person(false,.4,1.45);
 lia.g.rotation.y=-.4;aurel.g.rotation.y=.45;
+
+// Mobile movement and simple articulated walking for the existing character rigs.
+const joy=document.createElement('div');joy.id='joystick';joy.innerHTML='<div id="joystickKnob"></div>';
+joy.style.cssText='position:fixed;left:22px;bottom:32px;width:112px;height:112px;border:2px solid #c5a98b88;border-radius:50%;background:#18101b77;z-index:12;touch-action:none';
+document.body.appendChild(joy);
+const knob=joy.firstElementChild;knob.style.cssText='position:absolute;width:42px;height:42px;left:35px;top:35px;border-radius:50%;background:#a48b78aa;pointer-events:none';
+const switcher=document.createElement('button');switcher.textContent='Управлять: Лия';switcher.style.cssText='position:fixed;right:15px;bottom:32px;z-index:12;border:1px solid #a48b78;background:#251521dd;color:#fff;padding:13px;border-radius:22px';document.body.appendChild(switcher);
+let selected=lia,moveX=0,moveY=0,walkPhase=0;
+switcher.addEventListener('click',()=>{selected=selected===lia?aurel:lia;switcher.textContent='Управлять: '+(selected===lia?'Лия':'Аурель')});
+function setJoy(e){const r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),m=Math.min(1,43/Math.max(1,Math.hypot(dx,dy)));moveX=dx*m/43;moveY=-dy*m/43;knob.style.transform='translate('+moveX*35+'px,'+(-moveY*35)+'px)'}
+joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);setJoy(e)});
+joy.addEventListener('pointermove',e=>{if(joy.hasPointerCapture(e.pointerId))setJoy(e)});
+function stopJoy(){moveX=moveY=0;knob.style.transform='translate(0,0)'}
+joy.addEventListener('pointerup',stopJoy);joy.addEventListener('pointercancel',stopJoy);
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+const followTarget=new THREE.Vector3();
+function moveCharacter(dt){
+ const x=moveX+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+ const y=moveY+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
+ const mag=Math.min(1,Math.hypot(x,y));
+ if(mag>.08){
+  const heading=Math.atan2(x,y)+controls.getAzimuthalAngle();
+  const dx=Math.sin(heading)*dt*1.8*mag,dz=-Math.cos(heading)*dt*1.8*mag;
+  const nx=THREE.MathUtils.clamp(selected.g.position.x+dx,-5.2,5.2),nz=THREE.MathUtils.clamp(selected.g.position.z+dz,-4.65,4.65);
+  // Keep the imported bed's footprint clear.
+  if(!(nx>-4.6&&nx<.1&&nz>-2.2&&nz<1.35)){selected.g.position.x=nx;selected.g.position.z=nz}
+  selected.g.rotation.y=heading;
+  walkPhase+=dt*8;
+ }
+ for(const person of [lia,aurel]){
+  const active=person===selected?mag:0;
+  person.legs[0].rotation.x=Math.sin(walkPhase)*.5*active;
+  person.legs[1].rotation.x=-Math.sin(walkPhase)*.5*active;
+  person.arms[0].rotation.x=-Math.sin(walkPhase)*.32*active;
+  person.arms[1].rotation.x=Math.sin(walkPhase)*.32*active;
+ }
+ followTarget.copy(selected.g.position).add(new THREE.Vector3(0,1.55,0));
+ controls.target.lerp(followTarget,Math.min(1,dt*2.5));
+}
+
 status();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-const animationClock=new THREE.Clock();function tick(){requestAnimationFrame(tick);fireShader.uniforms.uTime.value=animationClock.getElapsedTime();fire.intensity=9+Math.sin(animationClock.elapsedTime*9)*1.5;controls.update();renderer.render(scene,camera)}tick();
+const animationClock=new THREE.Clock();function tick(){requestAnimationFrame(tick);const dt=Math.min(animationClock.getDelta(),.05);moveCharacter(dt);fireShader.uniforms.uTime.value=animationClock.elapsedTime;fire.intensity=9+Math.sin(animationClock.elapsedTime*9)*1.5;controls.update();renderer.render(scene,camera)}tick();
 </script></body></html>
