@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08080e;color:#e8d6c8;font:15px Georgia,serif}#ui{position:fixed;z-index:5;top:12px;left:12px;right:12px;background:#09070bbb;border:1px solid #6a4c42;border-radius:8px;padding:10px 14px;pointer-events:none}#info{font-size:13px;color:#bda69a}#tip{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);font-size:13px;background:#09070bd8;padding:8px 14px;border-radius:20px;white-space:nowrap;pointer-events:none}canvas{display:block}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><div id="ui">RAVENCRAFT · Gothic Chamber<div id="info">Загрузка настоящих 3D-моделей и материалов…</div><div id="fireStatus" style="font-size:12px;color:#d8b69d">Камин: загрузка модели…</div></div><div id="tip">Левый круг — ходить · справа — камера</div><script type="module">
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Ravencraft · Gothic Chamber</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08080e;color:#e8d6c8;font:15px Georgia,serif}#ui{position:fixed;z-index:5;top:12px;left:12px;right:12px;background:#09070bbb;border:1px solid #6a4c42;border-radius:8px;padding:10px 14px;pointer-events:none}#info{font-size:13px;color:#bda69a}#tip{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);font-size:13px;background:#09070bd8;padding:8px 14px;border-radius:20px;white-space:nowrap;pointer-events:none}canvas{display:block}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><div id="ui">RAVENCRAFT · Gothic Chamber · управление v20<div id="info">Загрузка настоящих 3D-моделей и материалов…</div><div id="fireStatus" style="font-size:12px;color:#d8b69d">Камин: загрузка модели…</div></div><div id="tip">Левый круг — ходить · справа — камера</div><script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -52,6 +52,18 @@ for(const x of [-4.3,2.3])box(.05,.018,4.65,x,.034,.8,gold);
 const fx=3.7,fz=-5.22;
 const fire=new THREE.PointLight(0xff8e49,10,7,2);fire.position.set(fx,1.15,fz+1.1);scene.add(fire);
 const fireShader=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform float uTime;varying vec2 vUv;void main(){float n=sin(vUv.x*17.+uTime*4.)*.12+sin(vUv.x*31.-uTime*7.)*.07;float h=.78-abs(vUv.x-.5)*.9+n;float a=smoothstep(.02,.18,vUv.y)*(1.-smoothstep(h-.25,h,vUv.y));vec3 c=mix(vec3(1.,.2,.02),vec3(1.,.8,.22),vUv.y);gl_FragColor=vec4(c,a*.8);}' });
+// A visible textured masonry hearth is always present, even when an external GLB fails.
+const hearthGroup=new THREE.Group();scene.add(hearthGroup);
+const stoneHearth=new THREE.MeshStandardMaterial({color:0xb5a39a,roughness:.94});
+const soot=new THREE.MeshStandardMaterial({color:0x160f0d,roughness:1,side:THREE.DoubleSide});
+function hearthBox(w,h,d,x,y,z,m){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;hearthGroup.add(mesh);return mesh}
+hearthBox(2.6,.32,1.12,fx,.16,fz+.46,stoneHearth);
+hearthBox(.43,2.6,.84,fx-1.08,1.55,fz+.18,stoneHearth);
+hearthBox(.43,2.6,.84,fx+1.08,1.55,fz+.18,stoneHearth);
+hearthBox(2.65,.4,1.08,fx,2.94,fz+.2,stoneHearth);
+hearthBox(1.8,2.25,.09,fx,1.45,fz-.16,soot);
+hearthBox(1.65,.16,.45,fx,.38,fz+.52,soot);
+for(let i=0;i<7;i++){const brick=hearthBox(.33,.14,.87,fx-1.08, .48+i*.31,fz+.18,stoneHearth);brick.position.x=fx-1.08}
 const fireplaceLoader=new GLTFLoader();
 const fireplaceURL='/Ravencraft/assets/real/fireplace.glb';
 fireplaceLoader.load(fireplaceURL,gltf=>{
@@ -60,9 +72,9 @@ fireplaceLoader.load(fireplaceURL,gltf=>{
  const scale=3.9/dim.y;obj.scale.setScalar(scale);obj.updateMatrixWorld(true);
  const fitted=new THREE.Box3().setFromObject(obj),center=fitted.getCenter(new THREE.Vector3());
  obj.position.set(fx-center.x, -fitted.min.y, fz+.12-center.z);
- obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true}});scene.add(obj);flames.forEach(o=>o.visible=true);
+ obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true}});scene.add(obj);hearthGroup.visible=false;flames.forEach(o=>o.visible=true);
  document.getElementById('fireStatus').textContent='Камин: настоящая 3D-модель загружена';
-},undefined,e=>{console.warn('Fireplace GLB',e);document.getElementById('fireStatus').textContent='Камин: ошибка загрузки 3D-модели';});
+},undefined,e=>{console.warn('Fireplace GLB',e);document.getElementById('fireStatus').textContent='Камин: резервный каменный портал (3D-файл ещё не загружен)';flames.forEach(o=>o.visible=true);});
 const flames=[];for(let i=0;i<3;i++){const flame=new THREE.Mesh(new THREE.PlaneGeometry(.5+i*.12,.9),fireShader);flame.position.set(fx+(i-1)*.18,.65,fz+.72+i*.02);flame.visible=false;scene.add(flame);flames.push(flame)}
 const base='https://raw.githubusercontent.com/nalabogarne-create/Ravencraft/imvu-quality-rebuild/assets/real/';
 const items=[
