@@ -6,18 +6,18 @@ S=requests.Session();S.headers.update({"User-Agent":"Ravencraft-Gothic-Game-Asse
 ROOT=pathlib.Path("assets/pbr");ROOT.mkdir(parents=True,exist_ok=True)
 def api(path):
  r=S.get("https://api.polyhaven.com/"+path,timeout=90);r.raise_for_status();return r.json()
-assets=api("assets?t=textures")
+assets=api("assets?type=textures")
 def select(hints):
  scored=[]
  for id,info in assets.items():
-  desc=" ".join([id,info.get("name",""),info.get("category","")," ".join(info.get("tags",[]))]).lower()
+  desc=" ".join([id,info.get("name",""),str(info.get("category",""))," ".join(str(tag) for tag in (info.get("tags") or []))]).lower()
   score=sum((8 if hint in id.lower() else 3) for hint in hints if hint in desc)
   if score:scored.append((score,id))
  if not scored:raise RuntimeError("No matching texture for "+str(hints))
  return sorted(scored,reverse=True)[0][1]
 def file_for(files,keys):
  for key in keys:
-  node=files.get(key,{})
+  node=next((v for k,v in files.items() if k.lower()==key.lower()),{})
   for res in ("1k","2k","4k"):
    for ext in ("jpg","png","webp"):
     obj=node.get(res,{}).get(ext)
@@ -27,7 +27,7 @@ targets={"wall":["stone wall","stone brick","stone_block_wall","stone_brick_wall
 for name,hints in targets.items():
  id=select(hints);files=api("files/"+id)
  print(name,id,flush=True)
- for suffix,keys in [("color",["Diffuse","diffuse"]),("normal",["nor_gl","Normal GL"]),("rough",["Rough","rough"])]:
+ for suffix,keys in [("color",["Diffuse","diffuse","diff"]),("normal",["nor_gl","normal_gl","normal","Normal GL"]),("rough",["Rough","rough","roughness"])]:
   url=file_for(files,keys)
   if not url:
    if suffix=="color":raise RuntimeError("Missing diffuse map for "+id)
