@@ -7,7 +7,7 @@ const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.06,100);came
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.38;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.append(renderer.domElement);
 const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(-.3,1.45,-.6);controls.enableDamping=true;controls.minDistance=1.2;controls.maxDistance=6.2;controls.maxPolarAngle=Math.PI*.51;controls.update();
 const ambient=new THREE.HemisphereLight(0x7687aa,0x51403b,2.05);scene.add(ambient);
-const moon=new THREE.DirectionalLight(0xb9c7e8,2.1);moon.position.set(1,5,2);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);const fill=new THREE.DirectionalLight(0xffd6b0,1.4);fill.position.set(-4,4,3);scene.add(fill);const ceilingBounce=new THREE.PointLight(0xffd8b4,24,14,2);ceilingBounce.position.set(-1,4.6,0);scene.add(ceilingBounce);
+const moon=new THREE.DirectionalLight(0xb9c7e8,2.1);moon.position.set(1,5,2);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);const fill=new THREE.DirectionalLight(0xffd6b0,1.4);fill.position.set(-4,4,3);scene.add(fill);const ceilingBounce=new THREE.PointLight(0xffd8b4,8,12,2);ceilingBounce.position.set(-1,4.6,0);scene.add(ceilingBounce);
 const fire=new THREE.PointLight(0xff8e49,16,9,2);fire.position.set(4,1.6,-3.7);scene.add(fire);
 const mat=(color,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness,side:THREE.DoubleSide});
 const stone=mat(0x555058),timber=mat(0x38231f),floorMat=mat(0x312019),metal=mat(0x4c352c,.32),velvet=mat(0x37101b,1);
@@ -38,9 +38,9 @@ panel(5.6,5.5,3.2,2.75,5.5,Math.PI);
 panel(2.8,1.2,-.9,4.9,5.5,Math.PI);
 panel(2.8,1.1,-.9,.55,5.5,Math.PI);
 panel(.2,3.2,-2.2,2.7,5.5,Math.PI);panel(.2,3.2,.4,2.7,5.5,Math.PI);
-const glass=mat(0x26324b,.2);const windowPane=panel(2.6,3.2,-.9,2.7,5.48,Math.PI,glass);tex.load('/Ravencraft/assets/stained-glass.svg',t=>{t.colorSpace=THREE.SRGBColorSpace;glass.map=t;glass.color.set(0xffffff);glass.emissive=new THREE.Color(0x252030);glass.emissiveMap=t;glass.emissiveIntensity=.24;glass.needsUpdate=true},undefined,()=>{info.textContent+=' · витраж не загрузился'});
-for(const x of [-2.2,-.9,.4])box(.09,3.4,.14,x,2.7,5.4,metal);
-for(const y of [1.8,3.1,4.25])box(2.7,.09,.14,-.9,y,5.4,metal);
+const glass=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.3,metalness:.08,side:THREE.DoubleSide,emissive:0x443044,emissiveIntensity:.08});const windowPane=panel(2.6,3.2,-.9,2.7,5.48,Math.PI,glass);tex.load('/Ravencraft/assets/stained-glass.svg',t=>{t.colorSpace=THREE.SRGBColorSpace;glass.map=t;glass.color.set(0xffffff);glass.emissive=new THREE.Color(0x252030);glass.emissiveMap=t;glass.emissiveIntensity=.12;glass.needsUpdate=true},undefined,()=>{info.textContent+=' · витраж не загрузился'});
+for(const x of [-2.2,.4])box(.11,3.4,.14,x,2.7,5.4,metal);
+for(const y of [1.1,4.3])box(2.7,.1,.14,-.9,y,5.4,metal);
 const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(12,11),timber);ceiling.rotation.x=Math.PI/2;ceiling.position.y=5.5;scene.add(ceiling);
 for(const x of [-5.6,-2.8,0,2.8,5.6])box(.24,.28,11,x,5.34,0,timber);
 for(const z of [-5.1,0,5.1])box(12,.22,.24,0,5.32,z,timber);
@@ -56,8 +56,8 @@ box(.5,2.75,.62,fx-1.28,1.57,fz+.27,stone);
 box(.5,2.75,.62,fx+1.28,1.57,fz+.27,stone);
 box(3.3,.28,.87,fx,3.02,fz+.28,stone);box(3.48,.14,.94,fx,3.23,fz+.3,stone);
 box(2.42,2.55,.10,fx,1.53,fz-.08,hearth);
-const grate=box(2.15,.11,.25,fx,.28,fz+.63,metal);
-for(let i=0;i<9;i++)box(.035,.29,.05,fx-1.0+i*.25,.44,fz+.75,metal);
+const grate=box(2.15,.07,.16,fx,.23,fz+.63,metal);
+for(let i=0;i<9;i++)box(.025,.18,.035,fx-1.0+i*.25,.35,fz+.75,metal);
 const fireShader=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`precision mediump float;uniform float uTime;varying vec2 vUv;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}void main(){vec2 p=vUv;float n=noise(vec2(p.x*5.+uTime*.55,p.y*4.-uTime*2.2));float n2=noise(vec2(p.x*11.-uTime*.7,p.y*9.-uTime*3.));float height=.25+.55*(1.-abs(p.x-.5)*1.5)+.19*n;float shape=smoothstep(.0,.12,p.y)*(1.-smoothstep(height-.22,height,p.y));float tongues=smoothstep(.44,.9,n*.7+n2*.4);float alpha=shape*(.55+.45*tongues)*smoothstep(.0,.16,p.x)*smoothstep(1.,.84,p.x);vec3 col=mix(vec3(1.,.17,.018),vec3(1.,.75,.17),clamp(p.y*.9+n2*.5,0.,1.));col=mix(col,vec3(1.,.95,.65),smoothstep(.0,.3,p.y)*(.5+n2*.5));gl_FragColor=vec4(col,alpha*.9);}`});
 for(let i=0;i<3;i++){const flame=new THREE.Mesh(new THREE.PlaneGeometry(1.55+i*.17,1.65+i*.1),fireShader);flame.position.set(fx+(i-1)*.13,1.05,fz+.73+i*.055);flame.renderOrder=3;scene.add(flame)}
 for(let i=0;i<4;i++){const log=box(1.35,.13,.15,fx+(i-1.5)*.06,.36+i*.065,fz+.62,mat(0x2d1710));log.rotation.z=(i%2?.17:-.15)}
@@ -67,8 +67,8 @@ const items=[
  ['gothic-bed.glb',-2.3,-.4,2.65,0,0],
  ['chandelier.glb',0,-.1,1.15,4.1,0],
  ['castle-door.glb',5.87,1.7,3.25,0,Math.PI/2],
- ['clock.glb',4.4,-4.3,2.5,0,0],
- ['candlestick.glb',-4.3,-2.2,1.15,.6,0]
+ ['clock.glb',-5.2,-3.8,2.05,0,Math.PI/2],
+ ['candlestick.glb',-4.5,-2.2,1.15,0,0]
 ];
 const loader=new GLTFLoader();
 for(const [file,x,z,height,lift,rotation] of items){
@@ -81,6 +81,18 @@ for(const [file,x,z,height,lift,rotation] of items){
   scene.add(root);loadedModels++;status();
  },undefined,()=>{failedModels++;status()});
 }
+// Close the rectangular gaps around the arched imported door with matching stone reveals.
+const archStone=stone;
+box(.22,3.3,.55,6.02,1.65,.38,archStone);
+box(.22,3.3,.55,6.02,1.65,3.02,archStone);
+box(.22,.55,3.15,6.02,3.45,1.7,archStone);
+// Carved depth for stained glass: stone sill, timber frame and mullions.
+box(2.95,.19,.42,-.9,1.02,5.32,stone);
+box(.18,3.55,.3,-2.3,2.73,5.32,timber);
+box(.18,3.55,.3,.5,2.73,5.32,timber);
+box(2.9,.17,.3,-.9,4.5,5.32,timber);
+// Keep the window luminous from behind, but avoid a fake bright point reflection on its face.
+const windowBacklight=new THREE.PointLight(0x8e739d,1.5,3,2);windowBacklight.position.set(-.9,2.7,5.05);scene.add(windowBacklight);
 status();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 const animationClock=new THREE.Clock();function tick(){requestAnimationFrame(tick);fireShader.uniforms.uTime.value=animationClock.getElapsedTime();fire.intensity=13+Math.sin(animationClock.elapsedTime*9)*2.5+Math.sin(animationClock.elapsedTime*17)*1.4;controls.update();renderer.render(scene,camera)}tick();
