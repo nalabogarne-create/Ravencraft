@@ -32,7 +32,7 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,11),floorMat);floor.rotati
 // Four closed walls. A window is an actual gap, not a glowing rectangle pasted over stone.
 panel(12,5.5,0,2.75,-5.5);
 panel(11,5.5,-6,2.75,0,Math.PI/2);
-panel(11,5.5,6,2.75,0,-Math.PI/2);
+panel(6.1,5.5,6,2.75,-2.45,-Math.PI/2);panel(2.7,5.5,6,2.75,4.15,-Math.PI/2);panel(2.2,2.25,6,4.375,1.7,-Math.PI/2);
 panel(3.6,5.5,-4.2,2.75,5.5,Math.PI);
 panel(5.6,5.5,3.2,2.75,5.5,Math.PI);
 panel(2.8,1.2,-.9,4.9,5.5,Math.PI);
@@ -58,7 +58,7 @@ box(3.25,.48,.82,fx,3.32,fz+.27,stone);
 box(2.42,2.65,.10,fx,1.65,fz-.08,hearth);
 const grate=box(2.15,.11,.25,fx,.28,fz+.63,metal);
 for(let i=0;i<9;i++)box(.055,.6,.08,fx-1.0+i*.25,.55,fz+.70,metal);
-const fireShader=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`precision mediump float;uniform float uTime;varying vec2 vUv;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}void main(){vec2 p=vUv;float n=noise(vec2(p.x*5.+uTime*.55,p.y*4.-uTime*2.2));float n2=noise(vec2(p.x*11.-uTime*.7,p.y*9.-uTime*3.));float height=.25+.55*(1.-abs(p.x-.5)*1.5)+.19*n;float shape=smoothstep(.0,.12,p.y)*smoothstep(height,height-.22,p.y);float tongues=smoothstep(.44,.9,n*.7+n2*.4);float alpha=shape*(.55+.45*tongues)*smoothstep(.0,.16,p.x)*smoothstep(1.,.84,p.x);vec3 col=mix(vec3(1.,.17,.018),vec3(1.,.75,.17),clamp(p.y*.9+n2*.5,0.,1.));col=mix(col,vec3(1.,.95,.65),smoothstep(.0,.3,p.y)*(.5+n2*.5));gl_FragColor=vec4(col,alpha*.9);}`});
+const fireShader=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`precision mediump float;uniform float uTime;varying vec2 vUv;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}void main(){vec2 p=vUv;float n=noise(vec2(p.x*5.+uTime*.55,p.y*4.-uTime*2.2));float n2=noise(vec2(p.x*11.-uTime*.7,p.y*9.-uTime*3.));float height=.25+.55*(1.-abs(p.x-.5)*1.5)+.19*n;float shape=smoothstep(.0,.12,p.y)*(1.-smoothstep(height-.22,height,p.y));float tongues=smoothstep(.44,.9,n*.7+n2*.4);float alpha=shape*(.55+.45*tongues)*smoothstep(.0,.16,p.x)*smoothstep(1.,.84,p.x);vec3 col=mix(vec3(1.,.17,.018),vec3(1.,.75,.17),clamp(p.y*.9+n2*.5,0.,1.));col=mix(col,vec3(1.,.95,.65),smoothstep(.0,.3,p.y)*(.5+n2*.5));gl_FragColor=vec4(col,alpha*.9);}`});
 for(let i=0;i<3;i++){const flame=new THREE.Mesh(new THREE.PlaneGeometry(1.55+i*.27,1.7+i*.14),fireShader);flame.position.set(fx+(i-1)*.13,1.05,fz+.36+i*.09);scene.add(flame)}
 for(let i=0;i<4;i++){const log=box(1.35,.13,.15,fx+(i-1.5)*.06,.36+i*.065,fz+.62,mat(0x2d1710));log.rotation.z=(i%2?.17:-.15)}
 fire.position.set(fx,1.5,fz+.5);
