@@ -1,24 +1,39 @@
-name: Import real CC0 PBR castle textures
+name: Import real photographic PBR castle textures
 on:
   push:
     branches: [main]
-    paths: ['rebuild/import-pbr.py', '.github/workflows/import-pbr.yml']
+    paths: ['rebuild/download-real-materials.py', '.github/workflows/import-pbr.yml']
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   textures:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Download real 1K PBR texture maps from Poly Haven
-        run: python rebuild/import-pbr.py
-      - name: Commit maps
+          python-version: '3.11'
+      - run: python -m pip install requests pillow
+      - name: Download real photographic Poly Haven PBR maps
+        run: python rebuild/download-real-materials.py
+      - name: Verify 9 material files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for material in ('wall','floor','wood'):
+              for channel in ('color','normal','rough'):
+                  p=Path('assets/pbr')/(material+'_'+channel+'.jpg')
+                  assert p.is_file() and p.stat().st_size>2000, str(p)+' missing'
+                  print(p,p.stat().st_size)
+          PY
+      - name: Commit verified materials
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/pbr/
-          git diff --cached --quiet || (git commit -m "Add CC0 PBR castle materials" && git push)
+          git add assets/pbr/*.jpg
+          if ! git diff --cached --quiet; then
+            git commit -m "Import verified real Poly Haven PBR castle textures"
+            git push origin HEAD:main
+          fi
