@@ -11,7 +11,7 @@ def select(hints):
  scored=[]
  for id,info in assets.items():
   desc=" ".join([id,info.get("name",""),str(info.get("category",""))," ".join(str(tag) for tag in (info.get("tags") or []))]).lower()
-  score=sum((8 if hint in id.lower() else 3) for hint in hints if hint in desc)
+  score=sum((30-i*8 if hint in (id+" "+info.get("name","")).lower() else 1) for i,hint in enumerate(hints) if hint in desc)
   if score:scored.append((score,id))
  if not scored:raise RuntimeError("No matching texture for "+str(hints))
  return sorted(scored,reverse=True)[0][1]
@@ -23,7 +23,7 @@ def file_for(files,keys):
     obj=node.get(res,{}).get(ext)
     if obj and obj.get("url"):return obj["url"]
  return None
-targets={"wall":["stone wall","stone brick","stone_block_wall","stone_brick_wall","castle wall"],"floor":["wood floor","wooden floor","wood planks","wood_floor"],"wood":["dark wood","aged wood","old wood","wood panel"]}
+targets={"wall":["castle wall variation","medieval wall","stone wall"],"floor":["old wooden floor","oak wood planks","wood floor"],"wood":["dark paneled wood","medieval wood","old wood"]}
 for name,hints in targets.items():
  id=select(hints);files=api("files/"+id)
  print(name,id,flush=True)
